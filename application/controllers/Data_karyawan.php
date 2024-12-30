@@ -41,7 +41,7 @@ class Data_karyawan extends CI_Controller {
         }
     }
 
-    public function edit($id) {
+    public function edit($id, $data) {
         $this->form_validation->set_rules('nama_krywn', 'Nama Karyawan', 'required');
         $this->form_validation->set_rules('jenis_kelamin', 'Jenis Kelamin', 'required|in_list[L,P]');
         $this->form_validation->set_rules('alamat', 'Alamat', 'required');

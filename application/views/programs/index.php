@@ -61,11 +61,11 @@
                         Manage employee salaries and compensations
                     </p>
                     <div class="flex space-x-2 mt-4">
-                        <a href="<?= base_url('index.php/Gaji') ?>" 
+                        <a href="<?= base_url('index.php/Gaji/create') ?>" 
                            class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                             <i class="fas fa-plus mr-2"></i>Add
                         </a>
-                        <a href="<?= base_url('gaji') ?>" 
+                        <a href="<?= base_url('index.php/Gaji') ?>" 
                            class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                             <i class="fas fa-list mr-2"></i>View All
                         </a>
