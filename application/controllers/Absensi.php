@@ -10,7 +10,10 @@ class Absensi extends CI_Controller {
     // Tampilkan semua data absensi
     public function index() {
         $data['absensi'] = $this->Absensi_model->get_all_absensi();
+        $this->load->view('template/header', $data);
+        $this->load->view('template/sidebar');
         $this->load->view('absensi/index', $data);
+        $this->load->view('template/footer');
     }
 
     // Form tambah absensi
