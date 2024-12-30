@@ -12,7 +12,6 @@ class Data_karyawan extends CI_Controller {
     public function index() {
         $data['title'] = 'Data Karyawan';
         $data['karyawan'] = $this->Data_karyawan_model->get_all_karyawan();
-
         $this->load->view('template/header', $data);
         $this->load->view('template/sidebar');
         $this->load->view('data_karyawan/index', $data);
