@@ -87,8 +87,11 @@ class Kinerja_model extends CI_Model {
     }
 
     public function get_active_karyawan() {
+        $this->db->select('id_krywn, nama_krywn, posisi');
+        $this->db->from('data_karyawan');
         $this->db->where('status', 'Aktif');
-        return $this->db->get('data_karyawan')->result();
+        $this->db->order_by('nama_krywn', 'ASC');
+        return $this->db->get()->result();
     }
 
     public function get_kinerja_grade($nilai) {
