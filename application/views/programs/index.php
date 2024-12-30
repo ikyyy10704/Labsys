@@ -84,11 +84,11 @@
                         Track employee attendance and schedules
                     </p>
                     <div class="flex space-x-2 mt-4">
-                        <a href="<?= base_url('absensi/create') ?>" 
+                        <a href="<?= base_url('index.php/Absensi/tambah') ?>" 
                            class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                             <i class="fas fa-plus mr-2"></i>Add
                         </a>
-                        <a href="<?= base_url('absensi') ?>" 
+                        <a href="<?= base_url('index.php/Absensi') ?>" 
                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                             <i class="fas fa-list mr-2"></i>View All
                         </a>
