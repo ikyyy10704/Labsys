@@ -15,11 +15,11 @@
                         Manage employee data, personal information, and status
                     </p>
                     <div class="flex space-x-2 mt-4">
-                        <a href="<?= base_url('karyawan/create') ?>" 
+                        <a href="<?= base_url('index.php/Data_karyawan/create') ?>" 
                            class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                             <i class="fas fa-plus mr-2"></i>Add
                         </a>
-                        <a href="<?= base_url('karyawan') ?>" 
+                        <a href="<?= base_url('index.php/Data_karyawan') ?>" 
                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                             <i class="fas fa-list mr-2"></i>View All
                         </a>
