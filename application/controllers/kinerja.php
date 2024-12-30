@@ -75,17 +75,18 @@ class Kinerja extends CI_Controller {
     public function update($id) {
         $this->form_validation->set_rules('nilai_kerja', 'Nilai Kerja', 'required|numeric|greater_than[0]|less_than[101]');
         $this->form_validation->set_rules('id_manajer', 'Manajer', 'required');
-
+    
         if ($this->form_validation->run() == FALSE) {
             $this->edit($id);
             return;
         }
-
+    
         $data = array(
             'nilai_kerja' => $this->input->post('nilai_kerja'),
-            'id_manajer' => $this->input->post('id_manajer')
+            'id_manajer' => $this->input->post('id_manajer'),
+            'tgl_pengelolaan' => date('Y-m-d') // Update tanggal pengelolaan
         );
-
+    
         if ($this->Kinerja_model->update_kinerja($id, $data)) {
             $this->session->set_flashdata('success', 'Data kinerja berhasil diupdate');
         } else {
@@ -93,7 +94,7 @@ class Kinerja extends CI_Controller {
         }
         redirect('kinerja');
     }
-
+    
     public function hapus($id) {
         if ($this->Kinerja_model->delete_kinerja($id)) {
             $this->session->set_flashdata('success', 'Data kinerja berhasil dihapus');

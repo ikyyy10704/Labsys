@@ -21,33 +21,27 @@
         <?php endif; ?>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full bg-white">
+            <table class="min-w-full">
                 <thead>
-                    <tr>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">No</th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">Nama Karyawan</th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">Nilai Kerja</th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">Manajer</th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">Departemen</th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">Tanggal Pengelolaan</th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                    <tr class="border-b">
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase">No</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase">Nama Karyawan</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase">Nilai Kerja</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase">Manajer</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase">Departemen</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase">Tanggal Pengelolaan</th>
+                        <th class="px-6 py-3"></th>
                     </tr>
                 </thead>
-                <tbody class="bg-white">
+                <tbody class="divide-y divide-gray-200">
                     <?php if (!empty($kinerja)) : ?>
                         <?php foreach ($kinerja as $index => $k) : ?>
                             <tr>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                    <?= $index + 1 ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                    <?= $k->nama_krywn ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                    <?= number_format($k->nilai_kerja, 2) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $index + 1 ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $k->nama_krywn ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= number_format($k->nilai_kerja, 2) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     <?php
                                     switch ($k->status_pengelolaan) {
@@ -67,42 +61,24 @@
                                         <?= $k->status_pengelolaan ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                    <?= $k->nama_manajer ?>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $k->nama_manajer ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $k->departemen ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= date('d/m/Y', strtotime($k->tgl_pengelolaan)) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                    <div class="flex justify-end space-x-3">
+                                        <a href="<?= base_url('kinerja/edit/'.$k->id_pengelolaan) ?>" class="text-blue-600 hover:text-blue-900">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="javascript:void(0)" onclick="confirmDelete('<?= $k->id_pengelolaan ?>')" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                    <?= $k->departemen ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                    <?= date('d/m/Y', strtotime($k->tgl_pengelolaan)) ?>
-                                </td>
-
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <div class="flex">
-                                <a href="<?= base_url('index.php/gaji/edit/'.$g->id_krywn.'/'.$g->tgl_gaji) ?>" 
-                                class="text-blue-600 hover:text-blue-900 mr-4">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="javascript:void(0)" 
-                                onclick="confirmDelete('<?= $g->id_krywn ?>', '<?= $g->tgl_gaji ?>')" 
-                                class="text-red-600 hover:text-red-900">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                                <script>
-                                    function confirmDelete(id, tanggal) {
-                                        if(confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-                                            window.location.href = '<?= base_url("index.php/gaji/delete/") ?>' + id + '/' + tanggal;
-                                        }
-                                    }
-                                </script>
-                            </div>
                             </tr>
                         <?php endforeach; ?>
                     <?php else : ?>
                         <tr>
-                            <td colspan="8" class="px-6 py-4 border-b border-gray-300 text-center text-gray-500">
-                                Data tidak tersedia
-                            </td>
+                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">Data tidak tersedia</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
