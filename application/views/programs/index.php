@@ -38,7 +38,7 @@
                         Track and manage employee performance metrics
                     </p>
                     <div class="flex space-x-2 mt-4">
-                        <a href="<?= base_url('kinerja/create') ?>" 
+                        <a href="<?= base_url('index.php/kinerja/tambah') ?>" 
                            class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                             <i class="fas fa-plus mr-2"></i>Add
                         </a>

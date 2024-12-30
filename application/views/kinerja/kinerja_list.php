@@ -3,7 +3,7 @@
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-semibold text-gray-800">Data Kinerja Karyawan</h1>
-            <a href="<?= base_url('kinerja/tambah') ?>" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+            <a href="<?= base_url('index.php/kinerja/tambah') ?>" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
                 <i class="fas fa-plus mr-2"></i>Tambah Data
             </a>
         </div>
