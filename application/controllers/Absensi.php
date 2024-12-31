@@ -6,8 +6,6 @@ class Absensi extends CI_Controller {
         parent::__construct();
         $this->load->model('Absensi_model');
     }
-
-    // Tampilkan semua data absensi
     public function index() {
         $data['absensi'] = $this->Absensi_model->get_all_absensi();
         $this->load->view('template/header', $data);
@@ -15,8 +13,6 @@ class Absensi extends CI_Controller {
         $this->load->view('absensi/index', $data);
         $this->load->view('template/footer');
     }
-
-    // Form tambah absensi
     public function tambah() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->Absensi_model->create_absensi();
@@ -25,8 +21,6 @@ class Absensi extends CI_Controller {
             $this->load->view('absensi/tambah');
         }
     }
-
-    // Form edit absensi
     public function edit($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->Absensi_model->update_absensi($id);
@@ -36,8 +30,6 @@ class Absensi extends CI_Controller {
             $this->load->view('absensi/edit', $data);
         }
     }
-
-    // Hapus absensi
     public function hapus($id) {
         $this->Absensi_model->delete_absensi($id);
         redirect('absensi');

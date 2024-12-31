@@ -6,8 +6,6 @@ class Absensi_model extends CI_Model {
         parent::__construct();
         $this->load->database();
     }
-
-    // Ambil semua data absensi
     public function get_all_absensi() {
         $this->db->select('absensi.*, data_karyawan.nama_krywn');
         $this->db->from('absensi');
@@ -15,15 +13,11 @@ class Absensi_model extends CI_Model {
         $query = $this->db->get();
         return $query->result();
     }
-
-    // Ambil data absensi berdasarkan ID
     public function get_absensi_by_id($id) {
         $this->db->where('id_absensi', $id);
         $query = $this->db->get('absensi');
         return $query->row();
     }
-
-    // Tambah data absensi
     public function create_absensi() {
         $data = array(
             'id_krywn' => $this->input->post('id_krywn'),
@@ -33,8 +27,6 @@ class Absensi_model extends CI_Model {
         );
         return $this->db->insert('absensi', $data);
     }
-
-    // Update data absensi
     public function update_absensi($id) {
         $data = array(
             'id_krywn' => $this->input->post('id_krywn'),
@@ -45,8 +37,6 @@ class Absensi_model extends CI_Model {
         $this->db->where('id_absensi', $id);
         return $this->db->update('absensi', $data);
     }
-
-    // Hapus data absensi
     public function delete_absensi($id) {
         $this->db->where('id_absensi', $id);
         return $this->db->delete('absensi');

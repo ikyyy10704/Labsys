@@ -23,9 +23,14 @@ class Kinerja_model extends CI_Model {
     }
 
     public function get_kinerja_by_id($id) {
-        $this->db->where('id_pengelolaan', $id);
-        $query = $this->db->get('vw_kinerja_detail');
-        return $query->row();
+        $this->db->select('kk.id_pengelolaan, kk.nilai_kerja, kk.status_pengelolaan, 
+                      kk.tgl_pengelolaan, kk.id_manajer, dk.nama_krywn, 
+                      m.nama_manajer, m.departemen');
+    $this->db->from('kinerja_karyawan kk');
+    $this->db->join('data_karyawan dk', 'kk.id_pengelolaan = dk.id_pengelolaan');
+    $this->db->join('manajer m', 'kk.id_manajer = m.id_manajer');
+    $this->db->where('kk.id_pengelolaan', $id);
+    return $this->db->get()->row();
     }
     public function get_kinerja_by_date($date) {
         $this->db->select('kk.*, dk.nama_krywn, m.nama_manajer, m.departemen');
@@ -39,15 +44,10 @@ class Kinerja_model extends CI_Model {
     public function insert_kinerja($data, $id_krywn) {
         $this->db->trans_start();
         try {
-            // 1. Insert ke tabel kinerja_karyawan
             $this->db->insert('kinerja_karyawan', $data);
             $id_pengelolaan = $this->db->insert_id();
-    
-            // 2. Update id_pengelolaan di tabel data_karyawan
             $this->db->where('id_krywn', $id_krywn);
             $this->db->update('data_karyawan', ['id_pengelolaan' => $id_pengelolaan]);
-    
-            // 3. Cek dan set id_absensi jika ada
             $this->db->where('id_krywn', $id_krywn);
             $this->db->order_by('tanggal', 'DESC');
             $this->db->limit(1);

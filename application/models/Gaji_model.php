@@ -56,19 +56,13 @@ class Gaji_model extends CI_Model {
             return false;
         }
     }
-    // Di Model (Gaji_model.php)
 public function delete_gaji($id, $tanggal) {
     try {
         $this->db->trans_start();
-        
-        // Dapatkan data sebelum dihapus untuk log jika diperlukan
         $gaji = $this->get_gaji_by_id_and_date($id, $tanggal);
-        
-        // Hapus data dengan kondisi spesifik
         $this->db->where('id_krywn', $id);
         $this->db->where('tgl_gaji', $tanggal);
         
-        // Jika ada id_pengelolaan, set NULL dulu untuk menghindari constraint
         $update_data = array(
             'id_pengelolaan' => NULL
         );
@@ -80,7 +74,6 @@ public function delete_gaji($id, $tanggal) {
         $this->db->trans_complete();
         
         if ($this->db->trans_status() === FALSE) {
-            // Rollback akan otomatis terjadi
             log_message('error', 'Failed to delete gaji: Transaction failed');
             return false;
         }
