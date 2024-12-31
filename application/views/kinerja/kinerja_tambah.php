@@ -39,7 +39,7 @@
                     </div>
                 <?php endif; ?>
 
-                <?= form_open('kinerja/simpan', ['class' => 'bg-white rounded-lg shadow-sm']) ?>
+                <?= form_open('kinerja/tambah', ['class' => 'bg-white rounded-lg shadow-sm']) ?>
                     <div class="p-6 space-y-6">
                         <!-- Karyawan -->
                         <div class="grid grid-cols-3 gap-4 items-center">

@@ -8,11 +8,18 @@ class User_login extends CI_Model {
         $this->load->database();
     }
 
-    public function get_user($email, $password) {
+    public function get_user($email) {
         $this->db->where('email', $email);
-        $this->db->where('password', md5($password)); // assuming the password is stored as an MD5 hash
-        $query = $this->db->get('login'); // replace 'users' with your actual users table name
-        return $query->row();
+        $query = $this->db->get('login');
+        return $query->row_array();
+    }
+
+    public function verify_password($password, $stored_password) {
+
+        if ($password === $stored_password) {
+            return true;
+        }
+        return md5($password) === $stored_password;
     }
 }
 ?>

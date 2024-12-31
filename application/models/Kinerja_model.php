@@ -27,61 +27,84 @@ class Kinerja_model extends CI_Model {
         $query = $this->db->get('vw_kinerja_detail');
         return $query->row();
     }
-
-    public function insert_kinerja($data) {
-        // Validasi nilai kerja sebelum insert
-        if (!is_numeric($data['nilai_kerja']) || $data['nilai_kerja'] < 0 || $data['nilai_kerja'] > 100) {
-            return false;
-        }
-        
-        // Set status pengelolaan berdasarkan fn_status_kinerja
-        $kehadiran = $this->db->query("SELECT COUNT(*) as total FROM absensi WHERE id_krywn = ? AND keterangan = 'Hadir'", 
-            array($data['id_krywn']))->row()->total;
-            
-        $this->db->select("fn_status_kinerja($kehadiran, {$data['nilai_kerja']}) as status");
-        $status = $this->db->get()->row()->status;
-        $data['status_pengelolaan'] = $status;
-
-        return $this->db->insert($this->table, $data);
+    public function get_kinerja_by_date($date) {
+        $this->db->select('kk.*, dk.nama_krywn, m.nama_manajer, m.departemen');
+        $this->db->from('kinerja_karyawan kk');
+        $this->db->join('data_karyawan dk', 'kk.id_pengelolaan = dk.id_pengelolaan');
+        $this->db->join('manajer m', 'kk.id_manajer = m.id_manajer');
+        $this->db->where('DATE(kk.tgl_pengelolaan)', $date);
+        return $this->db->get()->result();
     }
 
-    public function update_kinerja($id, $data) {
-        // Validasi dan update data
-        if (!is_numeric($data['nilai_kerja']) || $data['nilai_kerja'] < 0 || $data['nilai_kerja'] > 100) {
+    public function insert_kinerja($data, $id_krywn) {
+        $this->db->trans_start();
+        try {
+            // 1. Insert ke tabel kinerja_karyawan
+            $this->db->insert('kinerja_karyawan', $data);
+            $id_pengelolaan = $this->db->insert_id();
+    
+            // 2. Update id_pengelolaan di tabel data_karyawan
+            $this->db->where('id_krywn', $id_krywn);
+            $this->db->update('data_karyawan', ['id_pengelolaan' => $id_pengelolaan]);
+    
+            // 3. Cek dan set id_absensi jika ada
+            $this->db->where('id_krywn', $id_krywn);
+            $this->db->order_by('tanggal', 'DESC');
+            $this->db->limit(1);
+            $absensi = $this->db->get('absensi');
+            
+            if ($absensi->num_rows() > 0) {
+                $this->db->where('id_pengelolaan', $id_pengelolaan);
+                $this->db->update('kinerja_karyawan', [
+                    'id_absensi' => $absensi->row()->id_absensi
+                ]);
+            }
+    
+            $this->db->trans_complete();
+            return $this->db->trans_status();
+    
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            log_message('error', 'Error inserting kinerja: ' . $e->getMessage());
             return false;
         }
-        
-        // Dapatkan id_krywn dari data karyawan
-        $karyawan = $this->db->get_where('data_karyawan', ['id_pengelolaan' => $id])->row();
-        if ($karyawan) {
-            $kehadiran = $this->db->query("SELECT COUNT(*) as total FROM absensi 
-                                          WHERE id_krywn = ? AND keterangan = 'Hadir'", 
-                                          array($karyawan->id_krywn))->row()->total;
+    }
+    public function update_kinerja($id_pengelolaan, $data) {
+        $this->db->trans_start();
+        try {
+            if (!is_numeric($data['nilai_kerja']) || $data['nilai_kerja'] < 0 || $data['nilai_kerja'] > 100) {
+                return false;
+            }
+
+            $this->db->where('id_pengelolaan', $id_pengelolaan);
+            $this->db->update('kinerja_karyawan', $data);
+            $karyawan = $this->db->get_where('data_karyawan', ['id_pengelolaan' => $id_pengelolaan])->row();
             
-            $status = $this->db->query("SELECT fn_status_kinerja(?, ?) as status",
-                                      array($kehadiran, $data['nilai_kerja']))->row()->status;
-            
-            $data['status_pengelolaan'] = $status;
+            if ($karyawan) {
+                $kehadiran = $this->db->query(
+                    "SELECT COUNT(*) as total FROM absensi 
+                    WHERE id_krywn = ? AND keterangan = 'Hadir'", 
+                    array($karyawan->id_krywn)
+                )->row()->total;
+                $status = $this->db->query(
+                    "SELECT fn_status_kinerja(?, ?) as status",
+                    array($kehadiran, $data['nilai_kerja'])
+                )->row()->status;
+                
+                $this->db->where('id_pengelolaan', $id_pengelolaan);
+                $this->db->update('kinerja_karyawan', ['status_pengelolaan' => $status]);
+            }
+    
+            $this->db->trans_complete();
+            return $this->db->trans_status();
+    
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            log_message('error', 'Error updating kinerja: ' . $e->getMessage());
+            return false;
         }
-        
-        $this->db->where('id_pengelolaan', $id);
-        return $this->db->update($this->table, $data);
     }
     
-    public function delete_kinerja($id) {
-        // Cek relasi sebelum menghapus
-        $this->db->where('id_pengelolaan', $id);
-        $check = $this->db->get('gaji_karyawan')->num_rows();
-        
-        if ($check > 0) {
-            return false;
-        }
-    
-        $this->db->where('id_pengelolaan', $id);
-        return $this->db->delete($this->table);
-    }
-
-    // Method tambahan untuk mendapatkan data pendukung
     public function get_all_manajer() {
         return $this->db->get('manajer')->result();
     }
