@@ -26,7 +26,7 @@
             <div class="container mx-auto mt-8 p-4">
                 <h3 class="text-2xl font-semibold mb-4">Edit Karyawan</h3>
                 
-                <form action="process_edit_karyawan.php" method="POST">
+                <form action="" method="POST">
                     <input type="hidden" name="id_krywn" value="<?= htmlspecialchars($karyawan['id_krywn'] ?? '') ?>">
 
                     <div class="form-group mb-4">
