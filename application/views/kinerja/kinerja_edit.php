@@ -37,15 +37,14 @@
                     <div class="grid grid-cols-3 gap-4 items-center">
                         <label class="text-sm font-medium text-gray-700">Status Pengelolaan</label>
                         <div class="col-span-2">
-                            <select name="status_pengelolaan"
+                            <select name="status_pengelolaan" 
                                     class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required>
-                                <option value="">Pilih Status</option>
                                 <?php
                                 $status_options = ['Sangat Baik', 'Baik', 'Cukup', 'Perlu Peningkatan'];
                                 foreach ($status_options as $status): ?>
-                                    <option value="<?= $status ?>"
-                                        <?= set_select('status_pengelolaan', $status, ($kinerja->status_pengelolaan == $status)) ?>>
+                                    <option value="<?= $status ?>" 
+                                        <?= ($kinerja->status_pengelolaan == $status) ? 'selected' : '' ?>>
                                         <?= $status ?>
                                     </option>
                                 <?php endforeach; ?>

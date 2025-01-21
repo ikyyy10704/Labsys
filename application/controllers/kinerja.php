@@ -78,6 +78,7 @@ class Kinerja extends CI_Controller {
             $this->session->set_flashdata('error', 'Data kinerja tidak ditemukan');
             redirect('kinerja');
         }
+    
         $this->form_validation->set_rules('nilai_kerja', 'Nilai Kerja', 'required|numeric');
         $this->form_validation->set_rules('status_pengelolaan', 'Status Pengelolaan', 'required');
         $this->form_validation->set_rules('id_manajer', 'Manajer', 'required');
@@ -85,6 +86,8 @@ class Kinerja extends CI_Controller {
     
         if ($this->form_validation->run() === FALSE) {
             $this->load->view('template/header', $data);
+            $this->load->view('template/sidebar');  
+            $this->load->view('template/footer');
             $this->load->view('kinerja/kinerja_edit', $data);
         } else {
             $update_data = [
@@ -96,7 +99,7 @@ class Kinerja extends CI_Controller {
     
             if ($this->Kinerja_model->update_kinerja($id, $update_data)) {
                 $this->session->set_flashdata('success', 'Data kinerja berhasil diperbarui');
-                redirect('kinerja?date=' . $selected_date);
+                redirect('kinerja');
             } else {
                 $this->session->set_flashdata('error', 'Gagal memperbarui data kinerja');
                 redirect('kinerja/edit/' . $id);

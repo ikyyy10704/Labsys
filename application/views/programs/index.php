@@ -95,6 +95,30 @@
                     </div>
                 </div>
             </div>
+            <div class="bg-gradient-to-br from-orange-900 to-orange-800 rounded-lg overflow-hidden shadow-lg relative">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-white mb-2">Pengelolaan Manajer</h2>
+                <div class="text-orange-200 mb-4">
+                    <span class="inline-block bg-orange-700 rounded px-2 py-1 text-sm">
+                        Management
+                    </span>
+                </div>
+                <p class="text-orange-100 text-sm mb-4">
+                    Manage department managers and responsibilities
+                </p>
+                <div class="flex space-x-2 mt-4">
+                    <a href="<?= base_url('index.php/manajer/create') ?>" 
+                    class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
+                        <i class="fas fa-plus mr-2"></i>Add
+                    </a>
+                    <a href="<?= base_url('index.php/manajer') ?>" 
+                    class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
+                        <i class="fas fa-list mr-2"></i>View All
+                    </a>
+                </div>
+            </div>
+        </div>
+          
         </div>
     </div>
 </div>

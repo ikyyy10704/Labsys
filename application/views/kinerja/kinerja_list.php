@@ -102,3 +102,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+<script>
+function confirmDelete(id) {
+    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+        window.location.href = '<?= base_url('index.php/kinerja/hapus/') ?>' + id;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const editButtons = document.querySelectorAll('.edit-btn');
+    
+    editButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const href = this.getAttribute('href');
+            const date = this.getAttribute('data-date');
+            window.location.href = `${href}?date=${date}`;
+        });
+    });
+});
+</script>
