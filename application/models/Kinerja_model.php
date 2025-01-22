@@ -2,35 +2,105 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 class Kinerja_model extends CI_Model {
+    private $table = 'kinerja_karyawan';
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->database();
+    }
 
     public function get_kinerja_karyawan() {
-        return $this->db->get('kinerja')->result();
+        $this->db->select('kk.id_pengelolaan, kk.nilai_kerja, kk.status_pengelolaan, 
+                      kk.tgl_pengelolaan, dk.nama_krywn, m.nama_manajer, 
+                      m.departemen');
+        $this->db->from('kinerja_karyawan kk');
+        $this->db->join('data_karyawan dk', 'kk.id_pengelolaan = dk.id_pengelolaan');
+        $this->db->join('manajer m', 'kk.id_manajer = m.id_manajer');
+        return $this->db->get()->result();
+        return $this->db->get()->result();
+        $query = $this->db->get('vw_kinerja_detail');
+        return $query->result();
     }
 
-    public function get_nama_karyawan($id_krywn) {
-        $this->db->select('nama');
-        $this->db->from('karyawan');
-        $this->db->where('id_krywn', $id_krywn);
-        $query = $this->db->get();
-        return ($query->num_rows() > 0) ? $query->row()->nama : 'Tidak tersedia';
+    public function get_kinerja_by_id($id) {
+        $this->db->where('id_pengelolaan', $id);
+        $query = $this->db->get('vw_kinerja_detail');
+        return $query->row();
     }
 
-    public function get_nama_manajer($id_manajer) {
-        $this->db->select('nama_manajer');
-        $this->db->from('manajer');
-        $this->db->where('id_manajer', $id_manajer);
-        $query = $this->db->get();
-        return ($query->num_rows() > 0) ? $query->row()->nama_manajer : 'Tidak tersedia';
+    public function insert_kinerja($data) {
+        // Validasi nilai kerja sebelum insert
+        if (!is_numeric($data['nilai_kerja']) || $data['nilai_kerja'] < 0 || $data['nilai_kerja'] > 100) {
+            return false;
+        }
+        
+        // Set status pengelolaan berdasarkan fn_status_kinerja
+        $kehadiran = $this->db->query("SELECT COUNT(*) as total FROM absensi WHERE id_krywn = ? AND keterangan = 'Hadir'", 
+            array($data['id_krywn']))->row()->total;
+            
+        $this->db->select("fn_status_kinerja($kehadiran, {$data['nilai_kerja']}) as status");
+        $status = $this->db->get()->row()->status;
+        $data['status_pengelolaan'] = $status;
+
+        return $this->db->insert($this->table, $data);
     }
 
-    public function get_departemen_by_manajer($id_manajer) {
-        $this->db->select('departemen');
-        $this->db->from('departemen');
-        $this->db->where('id_manajer', $id_manajer);
-        $query = $this->db->get();
-        return ($query->num_rows() > 0) ? $query->row()->departemen : 'Tidak tersedia';
+    public function update_kinerja($id, $data) {
+        // Validasi dan update data
+        if (!is_numeric($data['nilai_kerja']) || $data['nilai_kerja'] < 0 || $data['nilai_kerja'] > 100) {
+            return false;
+        }
+        
+        // Dapatkan id_krywn dari data karyawan
+        $karyawan = $this->db->get_where('data_karyawan', ['id_pengelolaan' => $id])->row();
+        if ($karyawan) {
+            $kehadiran = $this->db->query("SELECT COUNT(*) as total FROM absensi 
+                                          WHERE id_krywn = ? AND keterangan = 'Hadir'", 
+                                          array($karyawan->id_krywn))->row()->total;
+            
+            $status = $this->db->query("SELECT fn_status_kinerja(?, ?) as status",
+                                      array($kehadiran, $data['nilai_kerja']))->row()->status;
+            
+            $data['status_pengelolaan'] = $status;
+        }
+        
+        $this->db->where('id_pengelolaan', $id);
+        return $this->db->update($this->table, $data);
+    }
+    
+    public function delete_kinerja($id) {
+        // Cek relasi sebelum menghapus
+        $this->db->where('id_pengelolaan', $id);
+        $check = $this->db->get('gaji_karyawan')->num_rows();
+        
+        if ($check > 0) {
+            return false;
+        }
+    
+        $this->db->where('id_pengelolaan', $id);
+        return $this->db->delete($this->table);
     }
 
-    // Implementasi fungsi lainnya...
+    // Method tambahan untuk mendapatkan data pendukung
+    public function get_all_manajer() {
+        return $this->db->get('manajer')->result();
+    }
+
+    public function get_active_karyawan() {
+        $this->db->select('id_krywn, nama_krywn, posisi');
+        $this->db->from('data_karyawan');
+        $this->db->where('status', 'Aktif');
+        $this->db->order_by('nama_krywn', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    public function get_kinerja_grade($nilai) {
+        $this->db->select("fn_grade_kinerja($nilai) as grade");
+        return $this->db->get()->row()->grade;
+    }
+
+    public function hitung_bonus_tahunan($masa_kerja, $nilai_kinerja) {
+        $this->db->select("fn_hitung_bonus_tahunan($masa_kerja, $nilai_kinerja) as bonus");
+        return $this->db->get()->row()->bonus;
+    }
 }
-?>
