@@ -36,38 +36,42 @@
                     <?php foreach($karyawan as $row): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <?= $row['id_krywn'] ?>
+                            <?= htmlspecialchars($row['id_krywn']) ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <?= $row['nama_krywn'] ?>
+                            <?= htmlspecialchars($row['nama_krywn']) ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
                             <?= $row['jenis_kelamin'] == 'L' ? 'Laki-Laki' : 'Perempuan' ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <?= $row['alamat'] ?>
+                            <?= htmlspecialchars($row['alamat']) ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <?= $row['email'] ?>
+                            <?= htmlspecialchars($row['email']) ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <?= $row['status'] ?>
+                            <?= htmlspecialchars($row['status']) ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <?= $row['posisi'] ?>
+                            <?= htmlspecialchars($row['posisi']) ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
                             <div class="flex">
                                 <a href="<?= site_url('data_karyawan/edit/' . $row['id_krywn']) ?>" class="text-blue-600 hover:text-blue-900 mr-4">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <!-- Delete Confirmation Form -->
+                                <form action="<?= site_url('data_karyawan/delete') ?>" method="POST" id="delete-form-<?= $row['id_krywn'] ?>" style="display: none;">
+                                    <input type="hidden" name="id_krywn" value="<?= $row['id_krywn'] ?>">
+                                </form>
                                 <a href="javascript:void(0)" onclick="confirmDelete('<?= $row['id_krywn'] ?>')" class="text-red-600 hover:text-red-900">
                                     <i class="fas fa-trash"></i>
                                 </a>
                                 <script>
                                     function confirmDelete(id) {
                                         if(confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-                                            window.location.href = '<?= site_url('data_karyawan/delete/') ?>' + id;
+                                            document.getElementById('delete-form-' + id).submit();
                                         }
                                     }
                                 </script>

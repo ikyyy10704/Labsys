@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Absensi</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
+
 <body class="bg-gray-100">
     <div class="ml-64 p-8">
         <div class="bg-white rounded-lg shadow-md p-6">
@@ -16,6 +19,7 @@
                 </a>
             </div>
 
+            <!-- Pesan Sukses atau Error -->
             <?php if ($this->session->flashdata('success')): ?>
                 <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
                     <?= $this->session->flashdata('success') ?>
@@ -42,45 +46,39 @@
                     </thead>
                     <tbody class="bg-white">
                         <?php foreach ($absensi as $row): ?>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                <?= $row->id_absensi ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                <?= $row->nama_krywn ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                <?= $row->tanggal ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                <?= $row->shift ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                <?= $row->keterangan ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                                <div class="flex">
-                                    <a href="<?= site_url('absensi/edit/' . $row->id_absensi) ?>" class="text-blue-600 hover:text-blue-900 mr-4">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="javascript:void(0)" onclick="confirmDelete('<?= $row->id_absensi ?>')" class="text-red-600 hover:text-red-900">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                    <script>
-                                        function confirmDelete(id) {
-                                            if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-                                                window.location.href = '<?= site_url('absensi/hapus/') ?>' + id;
-                                            }
-                                        }
-                                    </script>
-                                </div>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300"><?= $row->id_absensi ?></td>
+                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300"><?= $row->nama_krywn ?></td>
+                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300"><?= $row->tanggal ?></td>
+                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300"><?= $row->shift ?></td>
+                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300"><?= $row->keterangan ?></td>
+                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
+                                    <div class="flex">
+                                        <!-- Edit Button -->
+                                        <a href="<?= site_url('absensi/edit/' . $row->id_absensi) ?>" class="text-blue-600 hover:text-blue-900 mr-4">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <!-- Delete Button -->
+                                        <a href="javascript:void(0)" onclick="confirmDelete('<?= $row->id_absensi ?>')" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <script>
+        function confirmDelete(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                window.location.href = '<?= site_url('absensi/hapus/') ?>' + id;
+            }
+        }
+    </script>
 </body>
+
 </html>

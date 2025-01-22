@@ -12,8 +12,13 @@
         <form action="" method="post" class="space-y-4">
             <div>
                 <label for="id_krywn" class="block text-gray-700 font-medium">ID Karyawan:</label>
-                <input type="text" id="id_krywn" name="id_krywn" required 
+                <select id="id_krywn" name="id_krywn" required 
                     class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Pilih Karyawan</option>
+                    <?php foreach ($karyawan as $krywn): ?>
+                        <option value="<?= $krywn->id_krywn ?>"><?= $krywn->nama_krywn ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div>
                 <label for="tanggal" class="block text-gray-700 font-medium">Tanggal:</label>

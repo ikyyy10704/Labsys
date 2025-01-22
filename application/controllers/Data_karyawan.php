@@ -28,7 +28,6 @@ class Data_karyawan extends CI_Controller {
 
         if ($this->form_validation->run() === FALSE) {
             $data['title'] = 'Tambah Data Karyawan';
-
             $this->load->view('template/header', $data);
             $this->load->view('template/sidebar');
             $this->load->view('data_karyawan/create', $data);
@@ -67,9 +66,15 @@ class Data_karyawan extends CI_Controller {
         }
     }
 
-    public function delete($id) {
-        $this->Data_karyawan_model->delete_karyawan($id);
-        $this->session->set_flashdata('success', 'Data karyawan berhasil dihapus');
+    public function delete() {
+        $id = $this->input->post('id_krywn');
+        if ($id) {
+            $this->Data_karyawan_model->delete_karyawan($id);
+            $this->session->set_flashdata('success', 'Data karyawan berhasil dihapus');
+        } else {
+            $this->session->set_flashdata('error', 'Data karyawan gagal dihapus');
+        }
         redirect('data_karyawan');
     }
 }
+?>

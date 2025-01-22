@@ -39,7 +39,7 @@
                         <?php foreach ($kinerja as $index => $k) : ?>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $index + 1 ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $k->nama_krywn ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= !empty($k->nama_karyawan) ? $k->nama_karyawan : 'Tidak tersedia' ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= number_format($k->nilai_kerja, 2) ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -61,16 +61,14 @@
                                         <?= $k->status_pengelolaan ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $k->nama_manajer ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= $k->departemen ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= !empty($k->nama_manajer) ? $k->nama_manajer : 'Tidak tersedia' ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= !empty($k->departemen) ? $k->departemen : 'Tidak tersedia' ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-900"><?= date('d/m/Y', strtotime($k->tgl_pengelolaan)) ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                                     <div class="flex justify-end space-x-3">
-                                    <a href="<?= site_url('kinerja/edit/'.$k->id_pengelolaan) ?>" 
-                                    data-date="<?= date('Y-m-d', strtotime($k->tgl_pengelolaan)) ?>"
-                                    class="text-blue-600 hover:text-blue-900 edit-btn">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+                                        <a href="<?= site_url('kinerja/edit/'.$k->id_pengelolaan) ?>" class="text-blue-600 hover:text-blue-900">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
                                         <a href="javascript:void(0)" onclick="confirmDelete('<?= $k->id_pengelolaan ?>')" class="text-red-600 hover:text-red-900">
                                             <i class="fas fa-trash"></i>
                                         </a>
@@ -88,37 +86,11 @@
         </div>
     </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const editButtons = document.querySelectorAll('.edit-btn');
-    
-    editButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const href = this.getAttribute('href');
-            const date = this.getAttribute('data-date');
-            window.location.href = `${href}?date=${date}`;
-        });
-    });
-});
-</script>
+
 <script>
 function confirmDelete(id) {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
         window.location.href = '<?= base_url('index.php/kinerja/hapus/') ?>' + id;
     }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    const editButtons = document.querySelectorAll('.edit-btn');
-    
-    editButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const href = this.getAttribute('href');
-            const date = this.getAttribute('data-date');
-            window.location.href = `${href}?date=${date}`;
-        });
-    });
-});
 </script>

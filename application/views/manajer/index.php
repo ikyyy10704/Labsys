@@ -32,6 +32,9 @@
                         <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">
                             Departemen
                         </th>
+                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">
+                            Email
+                        </th>
                         <th class="px-6 py-3 border-b-2 border-gray-300"></th>
                     </tr>
                 </thead>
@@ -48,16 +51,28 @@
                             <?= $m->departemen ?>
                         </td>
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
+                            <?= $m->email ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
                             <div class="flex">
                                 <a href="<?= base_url('index.php/manajer/edit/'.$m->id_manajer) ?>" 
                                    class="text-blue-600 hover:text-blue-900 mr-4">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <a href="javascript:void(0)" 
-                                   onclick="confirmDelete(<?= $m->id_manajer ?>)" 
-                                   class="text-red-600 hover:text-red-900">
+                                onclick="confirmDelete(<?= htmlspecialchars(json_encode($m->id_manajer)) ?>)" 
+                                class="text-red-600 hover:text-red-900">
                                     <i class="fas fa-trash"></i>
                                 </a>
+
+                                <script>
+                                    function confirmDelete(id) {
+                                        if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                                            window.location.href = '<?= site_url('manajer/delete/') ?>' + id;
+                                        }
+                                    }
+                                </script>
+
                             </div>
                         </td>
                     </tr>

@@ -56,6 +56,14 @@
                                        value="<?= $manajer->departemen ?>">
                             </div>
                         </div>
+                        <div class="grid grid-cols-3 gap-4 items-center">
+                            <label class="text-sm font-medium text-gray-700">email</label>
+                            <div class="col-span-2">
+                                <input type="text" name="departemen" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                                       value="<?= $manajer->email ?>">
+                            </div>
+                        </div>
                     </div>
                     <div class="px-6 py-4 bg-gray-50 border-t rounded-b-lg flex justify-end space-x-4">
                         <a href="<?= base_url('index.php/manajer') ?>" 
