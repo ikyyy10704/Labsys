@@ -51,5 +51,94 @@ class Manajer_model extends CI_Model {
         }
     }
     
-    // Lanjutkan dengan fungsi update, delete, dan lainnya sesuai kebutuhan
+    public function update($id, $manajer_data, $login_data = []) {
+        $this->db->trans_begin();
+
+        try {
+            // Perbarui data manajer
+            $this->db->where('id_manajer', $id);
+            $this->db->update($this->table, $manajer_data);
+
+            // Perbarui data login jika diberikan
+            if (!empty($login_data)) {
+                $this->db->where('id_manajer', $id);
+                $this->db->update($this->login_table, $login_data);
+            }
+
+            if ($this->db->trans_status() === FALSE) {
+                throw new Exception('Gagal memperbarui data');
+            }
+
+            $this->db->trans_commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            return false;
+        }
+    }
+    
+    public function delete($id) {
+        $this->db->trans_begin();
+
+        try {
+            // Periksa apakah manajer memiliki catatan kinerja terkait
+            if ($this->has_kinerja_records($id)) {
+                throw new Exception('Manajer memiliki catatan kinerja terkait');
+            }
+
+            // Hapus dari tabel login (akan terkaskat ke tabel manajer)
+            $this->db->where('id_manajer', $id);
+            $this->db->delete($this->login_table);
+
+            if ($this->db->trans_status() === FALSE) {
+                throw new Exception('Gagal menghapus data');
+            }
+
+            $this->db->trans_commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            return false;
+        }
+    }
+    
+    public function is_unique_username($username, $id = null) {
+        $this->db->where('username', $username);
+        if ($id) {
+            $this->db->where('id_manajer !=', $id);
+        }
+        return $this->db->get($this->login_table)->num_rows() === 0;
+    }
+    
+    public function is_unique_email($email, $id = null) {
+        $this->db->where('email', $email);
+        if ($id) {
+            $this->db->where('id_manajer !=', $id);
+        }
+        return $this->db->get($this->login_table)->num_rows() === 0;
+    }
+    
+    public function upload_foto($id, $foto) {
+        $this->db->where('id_manajer', $id);
+        return $this->db->update($this->table, ['foto' => $foto]);
+    }
+    
+    public function has_kinerja_records($id) {
+        $this->db->where('id_manajer', $id);
+        return $this->db->get('kinerja_karyawan')->num_rows() > 0;
+    }
+    
+    public function get_dropdown() {
+        $this->db->select('id_manajer, nama_manajer');
+        $this->db->from($this->table);
+        $this->db->order_by('nama_manajer', 'ASC');
+        $query = $this->db->get();
+        
+        $dropdown = array('' => '-- Pilih Manajer --');
+        foreach ($query->result() as $row) {
+            $dropdown[$row->id_manajer] = $row->nama_manajer;
+        }
+        
+        return $dropdown;
+    }
 }
