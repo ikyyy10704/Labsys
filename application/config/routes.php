@@ -69,3 +69,6 @@ $route['auth/login'] = 'auth/login';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 $config['index_page'] ='';
+$route['absensi/edit/(:any)'] = 'absensi/edit/$1';
+$route['absensi/hapus/(:any)'] = 'absensi/hapus/$1';
+
