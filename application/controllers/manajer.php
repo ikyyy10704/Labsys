@@ -2,12 +2,17 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Manajer extends CI_Controller {
-
+    
     public function __construct() {
         parent::__construct();
         $this->load->model('Manajer_model');
         $this->load->library(['form_validation', 'session']);
         $this->load->helper(['url', 'form']);
+        
+        // Check if user is logged in
+        if (!$this->session->userdata('logged_in')) {
+            redirect('auth/login');
+        }
     }
 
     public function index() {
@@ -23,9 +28,12 @@ class Manajer extends CI_Controller {
     public function create() {
         $data['title'] = 'Tambah Manajer';
 
-        // Set validation rules
         $this->form_validation->set_rules('nama_manajer', 'Nama Manajer', 'required|trim');
         $this->form_validation->set_rules('departemen', 'Departemen', 'required|trim');
+        $this->form_validation->set_rules('username', 'Username', 'required|trim|is_unique[login.username]');
+        $this->form_validation->set_rules('email', 'Email', 'required|trim|valid_email|is_unique[login.email]');
+        $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
+        $this->form_validation->set_rules('confirm_password', 'Konfirmasi Password', 'required|matches[password]');
 
         if ($this->form_validation->run() === FALSE) {
             $this->load->view('template/header', $data);
@@ -33,73 +41,30 @@ class Manajer extends CI_Controller {
             $this->load->view('manajer/create');
             $this->load->view('template/footer');
         } else {
-            $data = [
+            // Prepare manajer data
+            $manajer_data = [
                 'nama_manajer' => $this->input->post('nama_manajer'),
-                'departemen' => $this->input->post('departemen')
+                'departemen' => $this->input->post('departemen'),
+                'foto' => 'default.jpg'
             ];
 
-            if ($this->Manajer_model->insert($data)) {
+            // Prepare login data
+            $login_data = [
+                'username' => $this->input->post('username'),
+                'password' => password_hash($this->input->post('password'), PASSWORD_DEFAULT),
+                'email' => $this->input->post('email')
+            ];
+
+            // Insert data
+            if ($this->Manajer_model->create($manajer_data, $login_data)) {
                 $this->session->set_flashdata('success', 'Data manajer berhasil ditambahkan');
+                redirect('manajer');
             } else {
                 $this->session->set_flashdata('error', 'Terjadi kesalahan saat menambah data');
+                redirect('manajer/create');
             }
-            redirect('manajer');
         }
     }
 
-    public function edit($id) {
-        $data['title'] = 'Edit Manajer';
-        $data['manajer'] = $this->Manajer_model->get_by_id($id);
-
-        if (empty($data['manajer'])) {
-            show_404();
-        }
-
-        // Set validation rules
-        $this->form_validation->set_rules('nama_manajer', 'Nama Manajer', 'required|trim');
-        $this->form_validation->set_rules('departemen', 'Departemen', 'required|trim');
-
-        if ($this->form_validation->run() === FALSE) {
-            $this->load->view('template/header', $data);
-            $this->load->view('template/sidebar');
-            $this->load->view('manajer/edit', $data);
-            $this->load->view('template/footer');
-        } else {
-            $data = [
-                'nama_manajer' => $this->input->post('nama_manajer'),
-                'departemen' => $this->input->post('departemen')
-            ];
-
-            if ($this->Manajer_model->update($id, $data)) {
-                $this->session->set_flashdata('success', 'Data manajer berhasil diperbarui');
-            } else {
-                $this->session->set_flashdata('error', 'Terjadi kesalahan saat memperbarui data');
-            }
-            redirect('manajer');
-        }
-    }
-
-    public function delete($id) {
-        // Check if manajer exists
-        if (!$this->Manajer_model->check_exists($id)) {
-            show_404();
-        }
-
-        // Check if manajer has related records in kinerja_karyawan
-        $this->load->database();
-        $query = $this->db->get_where('kinerja_karyawan', ['id_manajer' => $id]);
-        
-        if ($query->num_rows() > 0) {
-            $this->session->set_flashdata('error', 'Manajer tidak dapat dihapus karena masih memiliki data kinerja karyawan');
-            redirect('manajer');
-            return;
-        }
-
-        if ($this->Manajer_model->delete($id)) {
-            $this->session->set_flashdata('success', 'Data manajer berhasil dihapus');
-        } else {
-            $this->session->set_flashdata('error', 'Terjadi kesalahan saat menghapus data');
-        }
-        redirect('manajer');
-    }
+    // Lanjutkan dengan fungsi edit, delete, dan lainnya sesuai kebutuhan
 }

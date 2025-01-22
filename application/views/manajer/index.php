@@ -1,8 +1,10 @@
+<!-- application/views/manajer/index.php -->
 <div class="ml-64 p-8">
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-semibold text-gray-800">Data Manajer</h1>
-            <a href="<?= base_url('index.php/manajer/create') ?>" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+            <a href="<?= base_url('index.php/manajer/create') ?>" 
+               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
                 <i class="fas fa-plus mr-2"></i>Tambah Manajer
             </a>
         </div>
@@ -20,45 +22,63 @@
         <?php endif; ?>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full bg-white">
+            <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            No
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             ID Manajer
                         </th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Nama Manajer
                         </th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-sm leading-4 font-semibold text-gray-600 uppercase tracking-wider">
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Username
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Email
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Departemen
                         </th>
-                        <th class="px-6 py-3 border-b-2 border-gray-300"></th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Aksi
+                        </th>
                     </tr>
                 </thead>
-                <tbody class="bg-white">
-                    <?php foreach($manajer as $m): ?>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php $no = 1; foreach($manajer as $m): ?>
                     <tr>
-                        <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <?= $no++ ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?= $m->id_manajer ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?= $m->nama_manajer ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <?= $m->username ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <?= $m->email ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?= $m->departemen ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            <div class="flex">
-                                <a href="<?= base_url('index.php/manajer/edit/'.$m->id_manajer) ?>" 
-                                   class="text-blue-600 hover:text-blue-900 mr-4">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="javascript:void(0)" 
-                                   onclick="confirmDelete(<?= $m->id_manajer ?>)" 
-                                   class="text-red-600 hover:text-red-900">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </div>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="<?= base_url('index.php/manajer/edit/'.$m->id_manajer) ?>" 
+                               class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="javascript:void(0)" 
+                               onclick="confirmDelete(<?= $m->id_manajer ?>)"
+                               class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-trash"></i>
+                            </a>
                         </td>
                     </tr>
                     <?php endforeach; ?>

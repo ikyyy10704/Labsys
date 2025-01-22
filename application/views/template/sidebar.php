@@ -24,7 +24,7 @@
                     </a>
                 </li>
                 <li class="mb-3">
-                    <a href="<?= base_url('profile') ?>"
+                    <a href="<?= base_url('index.php/profile') ?>"
                        class="<?= $this->uri->segment(1) == 'profile' ? 
                               'bg-blue-500 text-white' : 'text-gray-600 hover:bg-blue-50' ?>
                               flex items-center px-4 py-3 rounded-lg transition-colors duration-200">
