@@ -21,8 +21,8 @@ class Manajer extends CI_Controller {
         
         $this->load->view('template/header', $data);
         $this->load->view('template/sidebar');
-        $this->load->view('manajer/index', $data);
         $this->load->view('template/footer');
+        $this->load->view('manajer/index', $data);
     }
 
     public function create() {
@@ -38,8 +38,8 @@ class Manajer extends CI_Controller {
         if ($this->form_validation->run() === FALSE) {
             $this->load->view('template/header', $data);
             $this->load->view('template/sidebar');
-            $this->load->view('manajer/create');
             $this->load->view('template/footer');
+            $this->load->view('manajer/create');
         } else {
             // Prepare manajer data
             $manajer_data = [
@@ -86,8 +86,8 @@ class Manajer extends CI_Controller {
         if ($this->form_validation->run() === FALSE) {
             $this->load->view('template/header', $data);
             $this->load->view('template/sidebar');
-            $this->load->view('manajer/edit', $data);
             $this->load->view('template/footer');
+            $this->load->view('manajer/edit', $data);
         } else {
             // Prepare manajer data
             $manajer_data = [

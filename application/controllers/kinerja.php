@@ -16,8 +16,8 @@ class Kinerja extends CI_Controller {
         
         $this->load->view('template/header', $data);
         $this->load->view('template/sidebar');
-        $this->load->view('kinerja/kinerja_list', $data);
         $this->load->view('template/footer');
+        $this->load->view('kinerja/kinerja_list', $data);
     }
 
     
@@ -35,8 +35,8 @@ class Kinerja extends CI_Controller {
             if ($this->form_validation->run() === FALSE) {
                 $this->load->view('template/header', $data);
                 $this->load->view('template/sidebar');
-                $this->load->view('kinerja/kinerja_tambah', $data);
                 $this->load->view('template/footer');
+                $this->load->view('kinerja/kinerja_tambah', $data);
             } else {
                 $kinerja_data = [
                     'nilai_kerja' => $this->input->post('nilai_kerja'),

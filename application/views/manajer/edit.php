@@ -53,27 +53,6 @@
                            value="<?= set_value('email', $manajer->email) ?>">
                 </div>
             </div>
-
-            <!-- Password (Optional for edit) -->
-            <div class="grid grid-cols-3 gap-4 items-center">
-                <label class="text-sm font-medium text-gray-700">Password Baru (Opsional)</label>
-                <div class="col-span-2">
-                    <input type="password" name="password" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <p class="mt-1 text-sm text-gray-500">Biarkan kosong jika tidak ingin mengubah password</p>
-                </div>
-            </div>
-
-            <!-- Confirm Password -->
-            <div class="grid grid-cols-3 gap-4 items-center">
-                <label class="text-sm font-medium text-gray-700">Konfirmasi Password Baru</label>
-                <div class="col-span-2">
-                    <input type="password" name="confirm_password" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
-                </div>
-            </div>
-
-            <!-- Departemen -->
             <div class="grid grid-cols-3 gap-4 items-center">
                 <label class="text-sm font-medium text-gray-700">Departemen</label>
                 <div class="col-span-2">

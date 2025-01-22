@@ -75,10 +75,10 @@
                                 <i class="fas fa-edit"></i>
                             </a>
                             <a href="javascript:void(0)" 
-                               onclick="confirmDelete(<?= $m->id_manajer ?>)"
-                               class="text-red-600 hover:text-red-900">
-                                <i class="fas fa-trash"></i>
-                            </a>
+                                onclick="confirmDelete('<?= $m->id_manajer ?>')"
+                                class="text-red-600 hover:text-red-900">
+                                    <i class="fas fa-trash"></i>
+                                </a>
                         </td>
                     </tr>
                     <?php endforeach; ?>
