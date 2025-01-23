@@ -36,7 +36,7 @@
     <h4 style="color: rgb(255, 255, 255);"><b>Biodata</b></h4>
     <h5 style="color: rgb(255, 255, 255);">Web Developer</h5>
     <h5 style="color: yellow;"><b>"Amikom Creative Economy Park"</b></h5>
-    <h5 style="color: rgb(255, 255, 255);"><b>23 mai 2024 s/d 30 Juli 2024</b></h5>
+    <h5 style="color: rgb(255, 255, 255);"><b>13 januari 2025 s/d 24 Januari 2025</b></h5>
     <a href="<?= base_url('index.php/beranda') ?>" 
   class="waves-effect waves-light btn-large red darken-2">
    <i class="material-icons left"></i>
