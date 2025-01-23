@@ -17,6 +17,9 @@ class Kinerja_model extends CI_Model {
         $this->db->join('data_karyawan dk', 'kk.id_pengelolaan = dk.id_pengelolaan');
         $this->db->join('manajer m', 'kk.id_manajer = m.id_manajer');
         return $this->db->get()->result();
+        return $this->db->get()->result();
+        $query = $this->db->get('vw_kinerja_detail');
+        return $query->result();
     }
 
     public function get_kinerja_by_id($id) {

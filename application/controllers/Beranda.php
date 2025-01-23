@@ -1,7 +1,6 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-
 class beranda extends CI_Controller {
     
     public function __construct() {
@@ -15,9 +14,9 @@ class beranda extends CI_Controller {
         $data['total_manajer'] = $this->Dashboard_model->count_manajer();
         $data['total_absensi'] = $this->Dashboard_model->count_absensi();
         $data['total_kinerja'] = $this->Dashboard_model->count_kinerja();
-        $data['total_gaji'] = $this->Dashboard_model->count_gaji();
-        $data['total_departemen'] = $this->Dashboard_model->count_departemen();
-        $data['kinerja_stats'] = $this->Dashboard_model->get_kinerja_statistics();
+        $data['salary_stats'] = $this->Dashboard_model->get_salary_by_department();
+        $data['top_performers'] = $this->Dashboard_model->get_top_performers();
+        $data['performance_distribution'] = $this->Dashboard_model->get_performance_distribution();
         
         $this->load->view('template/header', $data);
         $this->load->view('template/sidebar');
