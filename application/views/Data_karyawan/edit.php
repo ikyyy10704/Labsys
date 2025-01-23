@@ -1,75 +1,105 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($title) ? $title : 'Edit Karyawan' ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="flex">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white shadow-md h-screen">
-            <div class="p-4">
-                <img src="logo.png" alt="Logo" class="w-16 h-16 mx-auto">
+<!-- application/views/data_karyawan/edit.php -->
+<div class="ml-64 p-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-semibold text-gray-800">Edit Data Karyawan</h1>
+        </div>
+
+        <?php if(validation_errors()): ?>
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+                <?= validation_errors() ?>
             </div>
-            <nav>
-                <ul class="space-y-4">
-                    <li><a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200"><i class="fas fa-home mr-3"></i>Beranda</a></li>
-                    <li><a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200"><i class="fas fa-tasks mr-3"></i>Programs</a></li>
-                    <li><a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200"><i class="fas fa-user mr-3"></i>Profile</a></li>
-                    <li><a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200"><i class="fas fa-info-circle mr-3"></i>About Us</a></li>
-                </ul>
-            </nav>
-        </aside>
-        <main class="flex-1 p-6">
-            <div class="container mx-auto mt-8 p-4">
-                <h3 class="text-2xl font-semibold mb-4">Edit Karyawan</h3>
-                
-                <form action="" method="POST">
-                    <input type="hidden" name="id_krywn" value="<?= htmlspecialchars($karyawan['id_krywn'] ?? '') ?>">
+        <?php endif; ?>
 
-                    <div class="form-group mb-4">
-                        <label class="block">Nama Karyawan</label>
-                        <input type="text" name="nama_krywn" class="form-control w-full px-4 py-2 border rounded" 
-                               value="<?= htmlspecialchars($karyawan['nama_krywn'] ?? '') ?>" required>
-                    </div>
-
-                    <div class="form-group mb-4">
-                        <label class="block">Jenis Kelamin</label>
-                        <select name="jenis_kelamin" class="form-control w-full px-4 py-2 border rounded" required>
-                            <option value="L" <?= (isset($karyawan['jenis_kelamin']) && $karyawan['jenis_kelamin'] == 'L') ? 'selected' : '' ?>>Laki-Laki</option>
-                            <option value="P" <?= (isset($karyawan['jenis_kelamin']) && $karyawan['jenis_kelamin'] == 'P') ? 'selected' : '' ?>>Perempuan</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group mb-4">
-                        <label class="block">Alamat</label>
-                        <textarea name="alamat" class="form-control w-full px-4 py-2 border rounded" required><?= htmlspecialchars($karyawan['alamat'] ?? '') ?></textarea>
-                    </div>
-
-                    <div class="form-group mb-4">
-                        <label class="block">Email</label>
-                        <input type="email" name="email" class="form-control w-full px-4 py-2 border rounded" 
-                               value="<?= htmlspecialchars($karyawan['email'] ?? '') ?>" required>
-                    </div>
-
-                    <div class="form-group mb-4">
-                        <label class="block">Status</label>
-                        <input type="text" name="status" class="form-control w-full px-4 py-2 border rounded" 
-                               value="<?= htmlspecialchars($karyawan['status'] ?? '') ?>" required>
-                    </div>
-
-                    <div class="form-group mb-4">
-                        <label class="block">Posisi</label>
-                        <input type="text" name="posisi" class="form-control w-full px-4 py-2 border rounded" 
-                               value="<?= htmlspecialchars($karyawan['posisi'] ?? '') ?>" required>
-                    </div>
-
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded">Update</button>
-                </form>
+        <form action="" method="post" class="space-y-6">
+            <!-- ID Karyawan (Read Only) -->
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <label class="text-sm font-medium text-gray-700">ID Karyawan</label>
+                <div class="col-span-2">
+                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" 
+                           value="<?= $karyawan['id_krywn'] ?>" readonly>
+                </div>
             </div>
-        </main>
+
+            <!-- Nama -->
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <label class="text-sm font-medium text-gray-700">Nama Karyawan</label>
+                <div class="col-span-2">
+                    <input type="text" name="nama_krywn" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                           value="<?= htmlspecialchars($karyawan['nama_krywn']) ?>">
+                </div>
+            </div>
+
+            <!-- Jenis Kelamin -->
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <label class="text-sm font-medium text-gray-700">Jenis Kelamin</label>
+                <div class="col-span-2">
+                    <select name="jenis_kelamin" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="L" <?= $karyawan['jenis_kelamin'] == 'L' ? 'selected' : '' ?>>Laki-Laki</option>
+                        <option value="P" <?= $karyawan['jenis_kelamin'] == 'P' ? 'selected' : '' ?>>Perempuan</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Alamat -->
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <label class="text-sm font-medium text-gray-700">Alamat</label>
+                <div class="col-span-2">
+                    <textarea name="alamat" required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"><?= htmlspecialchars($karyawan['alamat']) ?></textarea>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <label class="text-sm font-medium text-gray-700">Email</label>
+                <div class="col-span-2">
+                    <input type="email" name="email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                           value="<?= htmlspecialchars($karyawan['email']) ?>">
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <label class="text-sm font-medium text-gray-700">Status</label>
+                <div class="col-span-2">
+                    <select name="status" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="Aktif" <?= $karyawan['status'] == 'Aktif' ? 'selected' : '' ?>>Aktif</option>
+                        <option value="Tidak Aktif" <?= $karyawan['status'] == 'Tidak Aktif' ? 'selected' : '' ?>>Tidak Aktif</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Posisi -->
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <label class="text-sm font-medium text-gray-700">Posisi</label>
+                <div class="col-span-2">
+                    <select name="posisi" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="Manager" <?= $karyawan['posisi'] == 'Manager' ? 'selected' : '' ?>>Manager</option>
+                        <option value="Supervisor" <?= $karyawan['posisi'] == 'Supervisor' ? 'selected' : '' ?>>Supervisor</option>
+                        <option value="Staff" <?= $karyawan['posisi'] == 'Staff' ? 'selected' : '' ?>>Staff</option>
+                        <option value="Admin" <?= $karyawan['posisi'] == 'Admin' ? 'selected' : '' ?>>Admin</option>
+                        <option value="Teknisi" <?= $karyawan['posisi'] == 'Teknisi' ? 'selected' : '' ?>>Teknisi</option>
+                        <option value="Marketing" <?= $karyawan['posisi'] == 'Marketing' ? 'selected' : '' ?>>Marketing</option>
+                        <option value="Operator" <?= $karyawan['posisi'] == 'Operator' ? 'selected' : '' ?>>Operator</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-4">
+                <a href="<?= base_url('index.php/data_karyawan') ?>" 
+                   class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                    Batal
+                </a>
+                <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                    Simpan
+                </button>
+            </div>
+        </form>
     </div>
-</body>
-</html>
+</div>

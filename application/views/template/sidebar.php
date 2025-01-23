@@ -44,12 +44,12 @@
             </ul>
         </nav>
         <div class="mt-auto pt-8">
-            <a href="logout.php" 
-            class="block w-full text-center text-red-500 bg-red-700/20 hover:bg-red-700/30 p-4 rounded-lg 
-                    font-medium hover:scale-105 transition-transform duration-200"
-            onclick="return confirm('Apakah Anda yakin ingin logout?');">
-                Logout
-            </a>
+        <a href="<?= base_url('index.php/user/logout') ?>" 
+           class="block w-full text-center text-red-500 bg-red-700/20 hover:bg-red-700/30 p-4 rounded-lg 
+                  font-medium hover:scale-105 transition-transform duration-200"
+           onclick="return confirm('Apakah Anda yakin ingin keluar?');">
+            Keluar
+        </a>
         </div>
     </div>
 </aside>
