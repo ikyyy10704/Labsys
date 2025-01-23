@@ -33,7 +33,7 @@
                     </a>
                 </li>
                 <li class="mb-3">
-                    <a href="<?= base_url('about') ?>"
+                    <a href="<?= base_url('index.php/about') ?>"
                        class="<?= $this->uri->segment(1) == 'about' ? 
                               'bg-blue-500 text-white' : 'text-gray-600 hover:bg-blue-50' ?>
                               flex items-center px-4 py-3 rounded-lg transition-colors duration-200">
@@ -45,7 +45,7 @@
         </nav>
         <div class="mt-auto pt-8">
         <a href="<?= base_url('index.php/user/logout') ?>" 
-           class="block w-full text-center text-red-500 bg-red-700/20 hover:bg-red-700/30 p-4 rounded-lg 
+           class="block w-34 m-8 text-center text-red-500 bg-red-700/30 hover:bg-red-700/20 p-4 rounded-lg 
                   font-medium hover:scale-105 transition-transform duration-200"
            onclick="return confirm('Apakah Anda yakin ingin keluar?');">
             Keluar
