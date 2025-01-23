@@ -56,11 +56,6 @@
                 <button type="submit" class="mt-4 w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded">
                     Masuk
                 </button>
-                <div class="mt-4 text-center">
-                    <p class="text-gray-600">Belum punya akun?
-                        <a href="<?= site_url('user/register') ?>" class="text-blue-600 hover:text-blue-800">Daftar</a>
-                    </p>
-                </div>
             </form>
         </div>
     </div>
