@@ -37,7 +37,11 @@
     <h5 style="color: rgb(255, 255, 255);">Web Developer</h5>
     <h5 style="color: yellow;"><b>"Amikom Creative Economy Park"</b></h5>
     <h5 style="color: rgb(255, 255, 255);"><b>23 mai 2024 s/d 30 Juli 2024</b></h5>
-    <button><a href="<?= base_url('index.php/beranda') ?>" style=" linear-gradient(rgb(192, 8, 8), rgb(70, 130, 180))">Kembali</a></button>
+    <a href="<?= base_url('index.php/beranda') ?>" 
+  class="waves-effect waves-light btn-large red darken-2">
+   <i class="material-icons left"></i>
+   Kembali ke Dashboard
+</a>
   </div>
 
   <div style="position: relative; left: 12rem; bottom: 10rem;">

@@ -12,7 +12,8 @@ class About extends CI_Controller {
         'assets/img/carousel/1.png',
         'assets/img/carousel/2.png',
         'assets/img/carousel/3.png',
-        'assets/img/carousel/4.png'
+        'assets/img/carousel/rashad.png',
+        'assets/img/carousel/ardi.png'
     ];
 
        $data['title'] = 'About Us';
