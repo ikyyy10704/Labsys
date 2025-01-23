@@ -3,9 +3,26 @@
     <meta charset="UTF-8">
     <title>About Us</title> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link rel="stylesheet" href="style.css">    
+    <link rel="stylesheet" href="style.css">   
+    <style>
+.carousel-item img {
+    width: 300px;
+    height: 200px;
+    object-fit: cover;}
+.carousel {
+    height: 400px !important;
+}
+.carousel-item {
+    width: 400px !important;
+    height: 400px !important;
+}
+.carousel-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+</style> 
 </head>
-<!-- application/views/about/index.php -->
 <body style="background: linear-gradient(rgb(10, 50, 120), rgb(70, 130, 180))">
   <!-- Rest of the content remains the same -->
   <header>
