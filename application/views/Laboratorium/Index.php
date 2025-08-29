@@ -1,7 +1,3 @@
-<?php $this->load->view('template/header'); ?>
-<?php $this->load->view('template/sidebar'); ?>
-
-<div class="flex-1 min-h-screen bg-gray-50">
     <!-- Header Section -->
     <div class="p-6 bg-gradient-to-r from-med-blue to-med-light-blue">
         <div class="flex items-center justify-between">
@@ -303,7 +299,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <style>
 /* Custom variables untuk konsistensi warna */
@@ -350,4 +345,3 @@
 }
 </style>
 
-<?php $this->load->view('template/footer'); ?>
