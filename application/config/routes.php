@@ -49,26 +49,25 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
 */
-$route['default_controller'] = 'Beranda';
-$route['programs'] = 'programs/index';
-$route['gaji/edit/(:num)'] = 'gaji/edit/$1';
-$route['gaji/edit/(:num)/(:any)'] = 'gaji/edit/$1/$2';
-$route['gaji/delete/(:num)/(:any)'] = 'gaji/delete/$1/$2';
-$route['default_controller'] = 'user/login';
-$route['login'] = 'user/login';
-$route['login_process'] = 'user/login_process';
-$route['logout'] = 'user/logout';
-$route['kinerja'] = 'kinerja/index';
-$route['kinerja/create'] = 'kinerja/create';
-$route['kinerja/edit/(:num)'] = 'kinerja/edit/$1';
-$route['kinerja/delete/(:num)'] = 'kinerja/delete/$1';
-$route['auth/forgot_password'] = 'auth/forgot_password';
-$route['auth/change_password'] = 'auth/change_password';
-$route['auth/register'] = 'auth/register';
-$route['auth/login'] = 'auth/login';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 $config['index_page'] ='';
-$route['absensi/edit/(:any)'] = 'absensi/edit/$1';
-$route['absensi/hapus/(:any)'] = 'absensi/hapus/$1';
-
+$route['default_controller'] = 'auth/login';
+$route['auth/login'] = 'auth/login';
+$route['auth/reset_password'] = 'auth/reset_password_request';
+$route['auth/reset_password_request'] = 'auth/reset_password_request';
+$route['auth/reset_password_form/(:any)'] = 'auth/reset_password_form/$1';
+$route['auth/process_reset_password'] = 'auth/process_reset_password';
+$route['admin'] = 'admin/index';
+$route['admin/menu'] = 'admin/menu';
+$route['admin/menu/create'] = 'admin/create_menu';
+$route['admin/menu/edit/(:num)'] = 'admin/edit_menu/$1';
+$route['admin/menu/delete/(:num)'] = 'admin/delete_menu/$1';
+$route['admin/pelanggan'] = 'admin/Pelanggan';
+$route['admin/pelanggan/create'] = 'admin/Pelanggan/create';
+$route['admin/pelanggan/edit/(:num)'] = 'admin/Pelanggan/edit/$1';
+$route['admin/pelanggan/delete/(:num)'] = 'admin/Pelanggan/delete/$1';
+$route['pembeli'] = 'pembeli/index';
+$route['register_pembeli'] = 'register_pembeli';
+$route['register_pembeli/process'] = 'register_pembeli/process';
+$route['login_pembeli/register'] = 'login_pembeli/register';
