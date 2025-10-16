@@ -17,41 +17,122 @@ class Laboratorium extends CI_Controller {
         $this->load->library(['form_validation']);
         $this->load->helper(['form', 'url', 'date']);
     }
-
- public function dashboard()
+public function dashboard()
 {
     $data['title'] = 'Dashboard Laboratorium';
     
     try {
-        // Get dashboard statistics dengan error handling
+        // 1. OVERVIEW STATS
         $data['stats'] = $this->Laboratorium_model->get_lab_dashboard_stats();
         
-        // Get performance statistics
-        $data['performance'] = $this->Laboratorium_model->get_lab_performance_stats();
-        
-        // Get pending requests dengan limit untuk dashboard
+        // 2. INCOMING REQUESTS (5 terakhir)
         $filters = array('status' => 'pending');
         $data['pending_requests'] = $this->Laboratorium_model->get_incoming_requests_paginated($filters, 5, 0);
         
-        // Get samples in progress
+        // 3. SAMPLES IN PROGRESS (5 terakhir)
         $filters_progress = array('status' => 'progress');
         $data['samples_in_progress'] = $this->Laboratorium_model->get_samples_data_enhanced($filters_progress, 5, 0);
         
-        // Get inventory alerts
+        // 4. VALIDATION PENDING
+        $data['pending_validation'] = $this->Laboratorium_model->get_results_pending_validation_enhanced();
+        
+        // 5. RECENT VALIDATIONS
+        $data['recent_validations'] = $this->Laboratorium_model->get_recent_validations_enhanced(5);
+        
+        // 6. INVENTORY ALERTS
         $data['inventory_alerts'] = $this->Laboratorium_model->get_inventory_alerts();
         
-        // Get stats untuk sidebar
-        $data['stats_sidebar'] = $this->_get_lab_stats_for_sidebar();
+        // 7. PERFORMANCE STATS
+        $data['performance'] = $this->Laboratorium_model->get_lab_performance_stats(30);
+        
+        // 8. QC STATS
+        $data['qc_stats'] = $this->Laboratorium_model->get_qc_dashboard_stats();
+        
+        // 9. EXAMINATION STATUS DISTRIBUTION
+        $data['status_distribution'] = $this->Laboratorium_model->get_examination_status_distribution();
+        
+        // 10. RECENT TIMELINE ACTIVITIES
+        $petugas_id = $this->Laboratorium_model->get_petugas_id_by_user_id($this->session->userdata('user_id'));
+        $data['recent_activities'] = $this->Laboratorium_model->get_recent_timeline_activities(10, $petugas_id);
         
     } catch (Exception $e) {
         log_message('error', 'Error loading laboratorium dashboard: ' . $e->getMessage());
-        $data = array_merge($data, $this->_get_default_lab_data());
+        // Set default empty data
+        $data['stats'] = array(
+            'pending_requests' => 0,
+            'samples_in_progress' => 0,
+            'completed_today' => 0,
+            'completed_this_month' => 0,
+            'low_stock_items' => 0,
+            'equipment_maintenance_due' => 0
+        );
+        $data['pending_requests'] = array();
+        $data['samples_in_progress'] = array();
+        $data['pending_validation'] = array();
+        $data['recent_validations'] = array();
+        $data['inventory_alerts'] = array();
+        $data['performance'] = array();
+        $data['qc_stats'] = array();
+        $data['status_distribution'] = array();
+        $data['recent_activities'] = array();
     }
     
     $this->load->view('template/header', $data);
     $this->load->view('template/sidebar', $data);
     $this->load->view('laboratorium/index', $data);
     $this->load->view('template/footer');
+}
+/**
+ * Get examination detail for modal (AJAX)
+ */
+public function get_examination_detail($examination_id)
+{
+    try {
+        $examination = $this->Laboratorium_model->get_examination_by_id($examination_id);
+        
+        if (!$examination) {
+            echo json_encode(['success' => false, 'message' => 'Pemeriksaan tidak ditemukan']);
+            return;
+        }
+        
+        // Add priority level calculation
+        $hours_waiting = 0;
+        if ($examination['tanggal_pemeriksaan']) {
+            $hours_waiting = round((time() - strtotime($examination['tanggal_pemeriksaan'])) / 3600, 1);
+        }
+        $examination['hours_waiting'] = $hours_waiting;
+        $examination['priority_level'] = $this->_calculate_priority_level($hours_waiting);
+        
+        echo json_encode([
+            'success' => true,
+            'examination' => $examination
+        ]);
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting examination detail: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat memuat data']);
+    }
+}
+
+private function _calculate_priority_level($hours_waiting)
+{
+    if ($hours_waiting >= 48) return 'urgent';
+    if ($hours_waiting >= 24) return 'high';
+    return 'normal';
+}
+// AJAX untuk chart data
+public function ajax_get_completion_trend()
+{
+    $this->output->set_content_type('application/json');
+    
+    try {
+        $performance = $this->Laboratorium_model->get_lab_performance_stats(7);
+        $data = $performance['daily_completions'] ?? array();
+        
+        echo json_encode(['success' => true, 'data' => $data]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
 }
    
     public function accept_request($examination_id)
@@ -95,61 +176,32 @@ class Laboratorium extends CI_Controller {
     }
 
 
-    /**
-     * Inventory List
-     */
-    public function inventory_list()
-    {
-        $data['title'] = 'Inventori Laboratorium';
+/**
+ * Get sample timeline data for modal (AJAX)
+ */
+public function get_sample_timeline_data($examination_id)
+{
+    try {
+        $examination = $this->Laboratorium_model->get_examination_by_id($examination_id);
         
-        try {
-            $data['reagents'] = $this->Laboratorium_model->get_reagent_inventory();
-            $data['equipment'] = $this->Laboratorium_model->get_equipment_inventory();
-            $data['alerts'] = $this->Laboratorium_model->get_inventory_alerts();
-        } catch (Exception $e) {
-            log_message('error', 'Error getting inventory: ' . $e->getMessage());
-            $data['reagents'] = array();
-            $data['equipment'] = array();
-            $data['alerts'] = array();
+        if (!$examination) {
+            echo json_encode(['success' => false, 'message' => 'Pemeriksaan tidak ditemukan']);
+            return;
         }
         
-        $this->load->view('template/header', $data);
-        $this->load->view('template/sidebar', $data);
-        $this->load->view('laboratorium/inventory_list', $data);
-        $this->load->view('template/footer');
+        $timeline = $this->Laboratorium_model->get_sample_timeline($examination_id);
+        
+        echo json_encode([
+            'success' => true,
+            'examination' => $examination,
+            'timeline' => $timeline
+        ]);
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting timeline data: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat memuat timeline']);
     }
-
-    /**
-     * Inventory Edit
-     */
-    public function inventory_edit()
-    {
-        $data['title'] = 'Edit Inventori';
-        
-        $type = $this->input->get('type') ?: 'reagen';
-        
-        try {
-            if ($type === 'reagen') {
-                $data['items'] = $this->_get_reagent_inventory();
-            } else {
-                $data['items'] = $this->_get_equipment_inventory();
-            }
-        } catch (Exception $e) {
-            log_message('error', 'Error getting inventory for edit: ' . $e->getMessage());
-            $data['items'] = array();
-        }
-        
-        $data['type'] = $type;
-        
-        $this->load->view('template/header', $data);
-        $this->load->view('template/sidebar', $data);
-        $this->load->view('laboratorium/inventory_edit', $data);
-        $this->load->view('template/footer');
-    }
-
-    /**
-     * Update Reagent Stock
-     */
+}
     public function update_reagent_stock($reagent_id)
     {
         if ($this->input->method() === 'post') {
@@ -1167,38 +1219,6 @@ public function save_examination_results()
     }
 }
 
-/**
- * Input results method - Updated to load dynamic data
- */
-public function input_results()
-{
-    $data['title'] = 'Input Hasil Pemeriksaan';
-    
-    try {
-        $petugas_id = $this->Laboratorium_model->get_petugas_id_by_user_id($this->session->userdata('user_id'));
-        
-        // Get examinations ready for results with additional info
-        $data['ready_examinations'] = $this->Laboratorium_model->get_examinations_ready_for_results_enhanced($petugas_id);
-        
-        // Add debug information
-        if (empty($data['ready_examinations'])) {
-            log_message('info', 'No ready examinations found for petugas_id: ' . $petugas_id);
-        } else {
-            log_message('info', 'Found ' . count($data['ready_examinations']) . ' ready examinations');
-        }
-        
-    } catch (Exception $e) {
-        log_message('error', 'Error getting ready examinations: ' . $e->getMessage());
-        $data['ready_examinations'] = array();
-    }
-    
-    $this->load->view('template/header', $data);
-    $this->load->view('template/sidebar', $data);
-    $this->load->view('laboratorium/input_results', $data);
-    $this->load->view('template/footer');
-}
-
-// Helper methods untuk extract data dari POST
 private function _get_kimia_darah_data()
 {
     return array(
@@ -1449,6 +1469,496 @@ public function get_qc_dashboard_data()
     } catch (Exception $e) {
         log_message('error', 'Error getting QC dashboard data: ' . $e->getMessage());
         echo json_encode(['success' => false, 'message' => 'Gagal memuat data dashboard']);
+    }
+}
+
+public function get_inventory_data()
+{
+    try {
+        // Get filters from request
+        $filters = array(
+            'type' => $this->input->get('type'),
+            'status' => $this->input->get('status'), 
+            'location' => $this->input->get('location'),
+            'alert' => $this->input->get('alert'),
+            'search' => $this->input->get('search')
+        );
+        
+        // Get reagent inventory
+        $reagents = $this->Laboratorium_model->get_reagent_inventory($filters);
+        
+        // Get equipment inventory  
+        $equipment = $this->Laboratorium_model->get_equipment_inventory($filters);
+        
+        // Combine and format data
+        $inventory = array();
+        
+        // Process reagents
+        foreach ($reagents as $reagent) {
+            $days_to_expiry = null;
+            if ($reagent['expired_date']) {
+                $days_to_expiry = ceil((strtotime($reagent['expired_date']) - time()) / (60 * 60 * 24));
+            }
+            
+            $alert_level = 'OK';
+            if ($reagent['status'] == 'Kadaluarsa') {
+                $alert_level = 'Urgent';
+            } elseif ($reagent['jumlah_stok'] <= $reagent['stok_minimal']) {
+                $alert_level = 'Low Stock';
+            } elseif ($days_to_expiry !== null && $days_to_expiry <= 30) {
+                $alert_level = 'Warning';
+            }
+            
+            $inventory[] = array(
+                'id' => $reagent['reagen_id'],
+                'type' => 'reagen',
+                'nama' => $reagent['nama_reagen'],
+                'kode' => $reagent['kode_unik'] ?: 'REA' . str_pad($reagent['reagen_id'], 3, '0', STR_PAD_LEFT),
+                'status' => $reagent['status'],
+                'stock_info' => $reagent['jumlah_stok'] . ' ' . $reagent['satuan'],
+                'location' => $reagent['lokasi_penyimpanan'],
+                'alert_level' => $alert_level,
+                'expired_date' => $reagent['expired_date'],
+                'expired_days' => $days_to_expiry,
+                'stok_minimal' => $reagent['stok_minimal'],
+                'satuan' => $reagent['satuan']
+            );
+        }
+        
+        // Process equipment
+        foreach ($equipment as $item) {
+            $days_to_calibration = null;
+            if ($item['jadwal_kalibrasi']) {
+                $days_to_calibration = ceil((strtotime($item['jadwal_kalibrasi']) - time()) / (60 * 60 * 24));
+            }
+            
+            $alert_level = 'OK';
+            if ($item['status_alat'] == 'Rusak') {
+                $alert_level = 'Urgent';
+            } elseif ($item['status_alat'] == 'Perlu Kalibrasi' || ($days_to_calibration !== null && $days_to_calibration <= 0)) {
+                $alert_level = 'Calibration Due';
+            } elseif ($days_to_calibration !== null && $days_to_calibration <= 30) {
+                $alert_level = 'Warning';
+            }
+            
+            $inventory[] = array(
+                'id' => $item['alat_id'],
+                'type' => 'alat',
+                'nama' => $item['nama_alat'],
+                'kode' => $item['kode_unik'] ?: 'ALT' . str_pad($item['alat_id'], 3, '0', STR_PAD_LEFT),
+                'status' => $item['status_alat'],
+                'stock_info' => $item['merek_model'] ?: 'N/A',
+                'location' => $item['lokasi'],
+                'alert_level' => $alert_level,
+                'jadwal_kalibrasi' => $item['jadwal_kalibrasi'],
+                'calibration_days' => $days_to_calibration,
+                'tanggal_kalibrasi_terakhir' => $item['tanggal_kalibrasi_terakhir'],
+                'riwayat_perbaikan' => $item['riwayat_perbaikan']
+            );
+        }
+        
+        // Get statistics
+        $stats = array(
+            'total_alat' => count($equipment),
+            'total_reagen' => count($reagents),
+            'total_alerts' => count(array_filter($inventory, function($item) {
+                return in_array($item['alert_level'], ['Warning', 'Urgent', 'Low Stock', 'Calibration Due']);
+            })),
+            'calibration_due' => count(array_filter($inventory, function($item) {
+                return $item['alert_level'] == 'Calibration Due';
+            }))
+        );
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $inventory,
+            'stats' => $stats
+        ]);
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting inventory data: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Gagal memuat data inventory']);
+    }
+}
+
+/**
+ * Create new inventory item
+ */
+public function create_inventory_item()
+{
+    if ($this->input->method() !== 'post') {
+        echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+        return;
+    }
+    
+    $type = $this->input->post('item_type');
+    $nama = $this->input->post('nama_item');
+    
+    if (!$type || !$nama) {
+        echo json_encode(['success' => false, 'message' => 'Data tidak lengkap']);
+        return;
+    }
+    
+    try {
+        $success = false;
+        $item_id = null;
+        
+        if ($type === 'alat') {
+            // Create equipment
+            $data = array(
+                'nama_alat' => $nama,
+                'kode_unik' => $this->input->post('kode_unik'),
+                'merek_model' => $this->input->post('merek_model'),
+                'lokasi' => $this->input->post('lokasi'),
+                'status_alat' => $this->input->post('status_alat') ?: 'Normal',
+                'jadwal_kalibrasi' => $this->input->post('jadwal_kalibrasi'),
+                'tanggal_kalibrasi_terakhir' => $this->input->post('tanggal_kalibrasi_terakhir'),
+                'riwayat_perbaikan' => $this->input->post('riwayat_perbaikan')
+            );
+            
+            $success = $this->Laboratorium_model->create_equipment($data);
+            if ($success) {
+                $item_id = $this->db->insert_id();
+                $this->User_model->log_activity(
+                    $this->session->userdata('user_id'), 
+                    'Item inventory baru ditambahkan: ' . $nama, 
+                    'alat_laboratorium', 
+                    $item_id
+                );
+            }
+            
+        } elseif ($type === 'reagen') {
+            // Create reagent
+            $data = array(
+                'nama_reagen' => $nama,
+                'kode_unik' => $this->input->post('kode_unik'),
+                'jumlah_stok' => $this->input->post('jumlah_stok') ?: 0,
+                'satuan' => $this->input->post('satuan'),
+                'lokasi_penyimpanan' => $this->input->post('lokasi_penyimpanan'),
+                'expired_date' => $this->input->post('expired_date'),
+                'stok_minimal' => $this->input->post('stok_minimal') ?: 10,
+                'status' => $this->input->post('status') ?: 'Tersedia',
+                'catatan' => $this->input->post('catatan')
+            );
+            
+            $success = $this->Laboratorium_model->create_reagent($data);
+            if ($success) {
+                $item_id = $this->db->insert_id();
+                $this->User_model->log_activity(
+                    $this->session->userdata('user_id'), 
+                    'Item inventory baru ditambahkan: ' . $nama, 
+                    'reagen', 
+                    $item_id
+                );
+            }
+        }
+        
+        if ($success) {
+            echo json_encode(['success' => true, 'message' => 'Item berhasil ditambahkan', 'item_id' => $item_id]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Gagal menambahkan item']);
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error creating inventory item: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat menambah item']);
+    }
+}
+
+/**
+ * Get inventory item for editing
+ */
+public function get_inventory_item($type, $id)
+{
+    try {
+        $item = null;
+        
+        if ($type === 'alat') {
+            $item = $this->Laboratorium_model->get_equipment_by_id($id);
+            if ($item) {
+                $item['item_type'] = 'alat';
+                $item['nama_item'] = $item['nama_alat'];
+            }
+        } elseif ($type === 'reagen') {
+            $item = $this->Laboratorium_model->get_reagent_by_id($id);
+            if ($item) {
+                $item['item_type'] = 'reagen';
+                $item['nama_item'] = $item['nama_reagen'];
+            }
+        }
+        
+        if ($item) {
+            echo json_encode(['success' => true, 'data' => $item]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Item tidak ditemukan']);
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting inventory item: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Gagal memuat data item']);
+    }
+}
+
+/**
+ * Update inventory item
+ */
+public function update_inventory_item()
+{
+    if ($this->input->method() !== 'post') {
+        echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+        return;
+    }
+    
+    $type = $this->input->post('item_type');
+    $id = $this->input->post('item_id');
+    $nama = $this->input->post('nama_item');
+    
+    if (!$type || !$id || !$nama) {
+        echo json_encode(['success' => false, 'message' => 'Data tidak lengkap']);
+        return;
+    }
+    
+    try {
+        $success = false;
+        
+        if ($type === 'alat') {
+            // Update equipment
+            $data = array(
+                'nama_alat' => $nama,
+                'kode_unik' => $this->input->post('kode_unik'),
+                'merek_model' => $this->input->post('merek_model'),
+                'lokasi' => $this->input->post('lokasi'),
+                'status_alat' => $this->input->post('status_alat') ?: 'Normal',
+                'jadwal_kalibrasi' => $this->input->post('jadwal_kalibrasi'),
+                'tanggal_kalibrasi_terakhir' => $this->input->post('tanggal_kalibrasi_terakhir'),
+                'riwayat_perbaikan' => $this->input->post('riwayat_perbaikan')
+            );
+            
+            $success = $this->Laboratorium_model->update_equipment($id, $data);
+            $table = 'alat_laboratorium';
+            
+        } elseif ($type === 'reagen') {
+            // Update reagent
+            $data = array(
+                'nama_reagen' => $nama,
+                'kode_unik' => $this->input->post('kode_unik'),
+                'jumlah_stok' => $this->input->post('jumlah_stok') ?: 0,
+                'satuan' => $this->input->post('satuan'),
+                'lokasi_penyimpanan' => $this->input->post('lokasi_penyimpanan'),
+                'expired_date' => $this->input->post('expired_date'),
+                'stok_minimal' => $this->input->post('stok_minimal') ?: 10,
+                'status' => $this->input->post('status') ?: 'Tersedia',
+                'catatan' => $this->input->post('catatan')
+            );
+            
+            $success = $this->Laboratorium_model->update_reagent($id, $data);
+            $table = 'reagen';
+        }
+        
+        if ($success) {
+            $this->User_model->log_activity(
+                $this->session->userdata('user_id'), 
+                'Item inventory diperbarui: ' . $nama, 
+                $table, 
+                $id
+            );
+            echo json_encode(['success' => true, 'message' => 'Item berhasil diperbarui']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui item']);
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error updating inventory item: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat memperbarui item']);
+    }
+}
+
+/**
+ * Delete inventory item
+ */
+public function delete_inventory_item($type, $id)
+{
+    if ($this->input->method() !== 'post') {
+        echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+        return;
+    }
+    
+    try {
+        $success = false;
+        $item_name = '';
+        $table = '';
+        
+        if ($type === 'alat') {
+            // Get item name first
+            $item = $this->Laboratorium_model->get_equipment_by_id($id);
+            $item_name = $item ? $item['nama_alat'] : 'Unknown';
+            
+            $this->db->where('alat_id', $id);
+            $success = $this->db->delete('alat_laboratorium');
+            $table = 'alat_laboratorium';
+            
+        } elseif ($type === 'reagen') {
+            // Get item name first
+            $item = $this->Laboratorium_model->get_reagent_by_id($id);
+            $item_name = $item ? $item['nama_reagen'] : 'Unknown';
+            
+            $this->db->where('reagen_id', $id);
+            $success = $this->db->delete('reagen');
+            $table = 'reagen';
+        }
+        
+        if ($success) {
+            $this->User_model->log_activity(
+                $this->session->userdata('user_id'), 
+                'Item inventory dihapus: ' . $item_name, 
+                $table, 
+                $id
+            );
+            echo json_encode(['success' => true, 'message' => 'Item berhasil dihapus']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Gagal menghapus item']);
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error deleting inventory item: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat menghapus item']);
+    }
+}
+
+/**
+ * Save calibration data
+ */
+public function save_calibration()
+{
+    if ($this->input->method() !== 'post') {
+        echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+        return;
+    }
+    
+    $this->form_validation->set_rules('item_id', 'Item ID', 'required|numeric');
+    $this->form_validation->set_rules('tanggal_kalibrasi', 'Tanggal Kalibrasi', 'required');
+    $this->form_validation->set_rules('hasil_kalibrasi', 'Hasil Kalibrasi', 'required|in_list[Passed,Failed,Conditional]');
+    
+    if ($this->form_validation->run() === FALSE) {
+        echo json_encode(['success' => false, 'message' => strip_tags(validation_errors())]);
+        return;
+    }
+    
+    try {
+        $item_id = $this->input->post('item_id');
+        $tanggal_kalibrasi = $this->input->post('tanggal_kalibrasi');
+        $hasil_kalibrasi = $this->input->post('hasil_kalibrasi');
+        $teknisi = $this->input->post('teknisi');
+        $catatan = $this->input->post('catatan');
+        $next_calibration = $this->input->post('next_calibration_date');
+        
+        // Start transaction
+        $this->db->trans_start();
+        
+        // Save to calibration history
+        $calibration_data = array(
+            'alat_id' => $item_id,
+            'tanggal_kalibrasi' => $tanggal_kalibrasi,
+            'hasil_kalibrasi' => $hasil_kalibrasi,
+            'teknisi' => $teknisi,
+            'next_calibration_date' => $next_calibration,
+            'status' => $hasil_kalibrasi,
+            'catatan' => $catatan,
+            'user_id' => $this->Laboratorium_model->get_petugas_id_by_user_id($this->session->userdata('user_id'))
+        );
+        
+        $this->db->insert('calibration_history', $calibration_data);
+        
+        // Update equipment status
+        $equipment_update = array(
+            'tanggal_kalibrasi_terakhir' => $tanggal_kalibrasi,
+            'status_alat' => $hasil_kalibrasi === 'Passed' ? 'Normal' : 'Perlu Kalibrasi'
+        );
+        
+        if ($next_calibration) {
+            $equipment_update['jadwal_kalibrasi'] = $next_calibration;
+        }
+        
+        $this->db->where('alat_id', $item_id);
+        $this->db->update('alat_laboratorium', $equipment_update);
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === FALSE) {
+            echo json_encode(['success' => false, 'message' => 'Gagal menyimpan data kalibrasi']);
+        } else {
+            $this->User_model->log_activity(
+                $this->session->userdata('user_id'), 
+                'Equipment calibration saved: ' . $hasil_kalibrasi, 
+                'alat_laboratorium', 
+                $item_id
+            );
+            echo json_encode(['success' => true, 'message' => 'Kalibrasi berhasil disimpan']);
+        }
+        
+    } catch (Exception $e) {
+        $this->db->trans_rollback();
+        log_message('error', 'Error saving calibration: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat menyimpan kalibrasi']);
+    }
+}
+
+/**
+ * Get calibration schedule
+ */
+public function get_calibration_schedule()
+{
+    try {
+        $this->db->select('al.*, ch.tanggal_kalibrasi as last_calibration, 
+                          DATEDIFF(al.jadwal_kalibrasi, CURDATE()) as days_until_calibration');
+        $this->db->from('alat_laboratorium al');
+        $this->db->join('calibration_history ch', 'al.alat_id = ch.alat_id AND ch.tanggal_kalibrasi = al.tanggal_kalibrasi_terakhir', 'left');
+        $this->db->where('al.jadwal_kalibrasi IS NOT NULL');
+        $this->db->order_by('al.jadwal_kalibrasi', 'ASC');
+        
+        $schedule = $this->db->get()->result_array();
+        
+        // Categorize by status
+        $categorized = array(
+            'overdue' => array(),
+            'due_soon' => array(),
+            'up_to_date' => array()
+        );
+        
+        foreach ($schedule as $item) {
+            $days = $item['days_until_calibration'];
+            
+            if ($days < 0) {
+                $item['status'] = 'overdue';
+                $item['days_label'] = 'Overdue (' . abs($days) . ' hari)';
+                $categorized['overdue'][] = $item;
+            } elseif ($days <= 30) {
+                $item['status'] = 'due_soon';
+                $item['days_label'] = 'Due in ' . $days . ' days';
+                $categorized['due_soon'][] = $item;
+            } else {
+                $item['status'] = 'up_to_date';
+                $item['days_label'] = 'Due in ' . $days . ' days';
+                $categorized['up_to_date'][] = $item;
+            }
+        }
+        
+        $stats = array(
+            'overdue' => count($categorized['overdue']),
+            'due_soon' => count($categorized['due_soon']),
+            'up_to_date' => count($categorized['up_to_date'])
+        );
+        
+        echo json_encode([
+            'success' => true, 
+            'data' => $categorized,
+            'stats' => $stats,
+            'all' => $schedule
+        ]);
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting calibration schedule: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Gagal memuat jadwal kalibrasi']);
     }
 }
 }

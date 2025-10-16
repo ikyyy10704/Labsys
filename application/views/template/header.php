@@ -42,6 +42,18 @@
             min-height: 100vh; 
             height: auto; 
         }
+        
+        /* Full width content support */
+        .main-content.fullwidth {
+            margin-left: 0 !important;
+        }
+        
+        @media (min-width: 768px) {
+            .main-content:not(.fullwidth) {
+                margin-left: 16rem; /* 256px = w-64 */
+            }
+        }
+        
         .sidebar-menu .active {
             background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
             color: #FFFFFF;
@@ -109,4 +121,4 @@
     </style>
 </head>
 <body class="bg-gray-50">
-    <div class="flex h-screen"><?php // Div akan ditutup di footer ?>
+    <div class="flex h-screen <?= isset($fullwidth) && $fullwidth ? 'fullwidth-layout' : '' ?>">

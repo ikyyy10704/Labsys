@@ -37,25 +37,31 @@
             <div class="pt-4">
                 <div class="px-4 py-2 mb-2">
                     <p class="text-xs font-semibold text-blue-200 uppercase tracking-wider">
-                        Manajemen Pengguna
+                        Manajemen Sistem Laboratorium
                     </p>
                 </div>
                 
-                <a href="<?= base_url('admin/users') ?>" 
+                <a href="<?= base_url('admin/user_management') ?>" 
                    class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200 <?= ($this->router->class == 'admin' && $this->router->method == 'users') ? 'bg-white bg-opacity-20 shadow-sm' : '' ?>">
                     <div class="flex items-center space-x-3">
-                        <i data-lucide="user-plus" class="w-5 h-5"></i>
-                        <span class="font-medium">Tambah Pengguna</span>
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        <span class="font-medium">Kelola Pengguna</span>
                     </div>
                 </a>
-                
-                <a href="<?= base_url('admin/edit_user') ?>" 
-                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200 <?= ($this->router->class == 'admin' && $this->router->method == 'edit_user') ? 'bg-white bg-opacity-20 shadow-sm' : '' ?>">
+                <a href="<?= base_url('pasien/kelola') ?>" 
+                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200 <?= ($this->router->class == 'admin' && $this->router->method == 'users') ? 'bg-white bg-opacity-20 shadow-sm' : '' ?>">
                     <div class="flex items-center space-x-3">
-                        <i data-lucide="user-cog" class="w-5 h-5"></i>
-                        <span class="font-medium">Edit Pengguna</span>
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                        <span class="font-medium">Kelola Pasien</span>
                     </div>
                 </a>
+                <a href="<?= base_url('inventory/kelola') ?>" 
+                    class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200 <?= ($this->router->class == 'admin' && $this->router->method == 'inventory') ? 'bg-white bg-opacity-20 shadow-sm' : '' ?>">
+                        <div class="flex items-center space-x-3">
+                            <i data-lucide="box" class="w-5 h-5"></i>
+                            <span class="font-medium">Kelola Inventory</span>
+                        </div>
+                    </a>
             </div>
 
             <!-- MONITORING Section -->
@@ -106,23 +112,6 @@
                         <span class="font-medium">Cadangkan & Pulihkan DB</span>
                     </div>
                 </a>
-                
-                <a href="<?= base_url('admin/operational_data') ?>" 
-                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
-                    <div class="flex items-center space-x-3">
-                        <i data-lucide="folder" class="w-5 h-5"></i>
-                        <span class="font-medium">Data Operasional</span>
-                    </div>
-                </a>
-                
-                <a href="<?= base_url('admin/master_data') ?>" 
-                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
-                    <div class="flex items-center space-x-3">
-                        <i data-lucide="database" class="w-5 h-5"></i>
-                        <span class="font-medium">Data Master</span>
-                    </div>
-                </a>
-            </div>
             
         <!-- ADMINISTRASI ROLE -->
         <?php elseif($this->session->userdata('role') == 'administrasi'): ?>
@@ -141,15 +130,23 @@
             <div class="pt-4">
                 <div class="px-4 py-2 mb-2">
                     <p class="text-xs font-semibold text-blue-200 uppercase tracking-wider">
-                        Manajemen Pasien
+                        Pasien
                     </p>
                 </div>
                 
-                <a href="<?= base_url('administrasi/add_patient_data') ?>" 
+                <a href="<?= base_url('administrasi/patient_management') ?>" 
                    class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
                     <div class="flex items-center space-x-3">
-                        <i data-lucide="user-plus" class="w-5 h-5"></i>
-                        <span class="font-medium">Tambah Data Pasien</span>
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        <span class="font-medium">Kelola Pasien</span>
+                    </div>
+                </a>
+
+                <a href="<?= base_url('administrasi/examination_request') ?>" 
+                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="stethoscope" class="w-5 h-5"></i>
+                        <span class="font-medium">Permintaan Pemeriksaan</span>
                     </div>
                 </a>
                 
@@ -166,33 +163,28 @@
             <div class="pt-4">
                 <div class="px-4 py-2 mb-2">
                     <p class="text-xs font-semibold text-blue-200 uppercase tracking-wider">
-                        Manajemen Data
+                        Laporan
                     </p>
                 </div>
                 
-                <a href="<?= base_url('administrasi/financial_reports') ?>" 
+ 
+                <a href="<?= base_url('Administrasi_laporan/examination_reports') ?>" 
                    class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
                     <div class="flex items-center space-x-3">
                         <i data-lucide="file-text" class="w-5 h-5"></i>
+                        <span class="font-medium">Laporan Pemeriksaan</span>
+                    </div>
+                </a>
+                
+                <a href="<?= base_url('Administrasi_laporan/financial_reports') ?>" 
+                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="dollar-sign" class="w-5 h-5"></i>
                         <span class="font-medium">Laporan Keuangan</span>
                     </div>
                 </a>
-                
-                <a href="<?= base_url('administrasi/schedule') ?>" 
-                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
-                    <div class="flex items-center space-x-3">
-                        <i data-lucide="calendar" class="w-5 h-5"></i>
-                        <span class="font-medium">Jadwal</span>
-                    </div>
-                </a>
-                
-                <a href="<?= base_url('administrasi/export_data') ?>" 
-                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
-                    <div class="flex items-center space-x-3">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                        <span class="font-medium">Ekspor Data</span>
-                    </div>
-                </a>
+
+
             </div>
             
         <!-- PETUGAS LAB ROLE -->
@@ -203,7 +195,7 @@
                class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200 <?= ($this->router->class == 'laboratorium' && $this->router->method == 'dashboard') ? 'bg-white bg-opacity-20 shadow-sm' : '' ?>"
                title="Dashboard Lab">
                 <div class="flex items-center space-x-3">
-                    <i data-lucide="flask-conical" class="w-5 h-5"></i>
+                    <i data-lucide="microscope" class="w-5 h-5"></i>
                     <span class="font-medium">Dashboard</span>
                 </div>
             </a>
@@ -245,20 +237,12 @@
                         Manajemen Hasil
                     </p>
                 </div>
-                
-                <a href="<?= base_url('laboratorium/input_results') ?>" 
-                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
-                    <div class="flex items-center space-x-3">
-                        <i data-lucide="edit" class="w-5 h-5"></i>
-                        <span class="font-medium">Input Hasil</span>
-                    </div>
-                </a>
-                
+
                 <a href="<?= base_url('laboratorium/quality_control') ?>" 
                    class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
                     <div class="flex items-center space-x-3">
-                        <i data-lucide="shield-check" class="w-5 h-5"></i>
-                        <span class="font-medium">Kontrol Kualitas</span>
+                        <i data-lucide="badge-check" class="w-5 h-5"></i>
+                        <span class="font-medium">Validasi Hasil</span>
                     </div>
                 </a>
             </div>
@@ -271,7 +255,7 @@
                     </p>
                 </div>
                 
-                <a href="<?= base_url('laboratorium/inventory_list') ?>" 
+                <a href="<?= base_url('inventory_lab/kelola') ?>" 
                    class="nav-link flex items-center justify-between px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
                     <div class="flex items-center space-x-3">
                         <i data-lucide="package" class="w-5 h-5"></i>
@@ -282,14 +266,6 @@
                         <?= $stats['low_stock_items'] ?>
                     </span>
                     <?php endif; ?>
-                </a>
-                
-                <a href="<?= base_url('laboratorium/inventory_edit') ?>" 
-                   class="nav-link flex items-center px-4 py-3 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-all duration-200">
-                    <div class="flex items-center space-x-3">
-                        <i data-lucide="edit-3" class="w-5 h-5"></i>
-                        <span class="font-medium">Edit Inventori</span>
-                    </div>
                 </a>
             </div>
             

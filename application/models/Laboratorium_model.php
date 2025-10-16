@@ -7,6 +7,397 @@ class Laboratorium_model extends CI_Model {
         parent::__construct();
         $this->load->database();
     }
+    public function get_timeline_stats($examination_id) {
+        $stats = array();
+        
+        // Total entries
+        $this->db->where('pemeriksaan_id', $examination_id);
+        $stats['total_entries'] = $this->db->count_all_results('timeline_progres');
+        
+        // First and last entry
+        $this->db->select('MIN(tanggal_update) as first_entry, MAX(tanggal_update) as last_entry');
+        $this->db->where('pemeriksaan_id', $examination_id);
+        $result = $this->db->get('timeline_progres')->row_array();
+        
+        $stats['first_entry'] = $result['first_entry'];
+        $stats['last_entry'] = $result['last_entry'];
+        
+        // Calculate time span
+        if ($result['first_entry'] && $result['last_entry']) {
+            $first = new DateTime($result['first_entry']);
+            $last = new DateTime($result['last_entry']);
+            $diff = $first->diff($last);
+            $stats['time_span_hours'] = ($diff->days * 24) + $diff->h + ($diff->i / 60);
+        } else {
+            $stats['time_span_hours'] = 0;
+        }
+        
+        // Average time between entries
+        if ($stats['total_entries'] > 1) {
+            $stats['avg_time_between_entries'] = $stats['time_span_hours'] / ($stats['total_entries'] - 1);
+        } else {
+            $stats['avg_time_between_entries'] = 0;
+        }
+        
+        return $stats;
+    }
+
+    public function get_recent_timeline_activities($limit = 10, $petugas_id = null) {
+        $this->db->select('tp.*, pt.nama_petugas, pl.nomor_pemeriksaan, p.nama as nama_pasien');
+        $this->db->from('timeline_progres tp');
+        $this->db->join('petugas_lab pt', 'tp.petugas_id = pt.petugas_id', 'left');
+        $this->db->join('pemeriksaan_lab pl', 'tp.pemeriksaan_id = pl.pemeriksaan_id');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+        
+        if ($petugas_id) {
+            $this->db->where('tp.petugas_id', $petugas_id);
+        }
+        
+        $this->db->order_by('tp.tanggal_update', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result_array();
+    }
+
+public function get_validation_statistics($period_days = 30)
+{
+    $stats = array();
+    
+    // Daily validation trend
+    $this->db->select('DATE(completed_at) as date, COUNT(*) as count');
+    $this->db->where('status_pemeriksaan', 'selesai');
+    $this->db->where('completed_at >=', date('Y-m-d', strtotime("-{$period_days} days")));
+    $this->db->group_by('DATE(completed_at)');
+    $this->db->order_by('date', 'ASC');
+    $stats['daily_trend'] = $this->db->get('pemeriksaan_lab')->result_array();
+    
+    // Validation by examination type
+    $this->db->select('jenis_pemeriksaan, COUNT(*) as count');
+    $this->db->where('status_pemeriksaan', 'selesai');
+    $this->db->where('completed_at >=', date('Y-m-d', strtotime("-{$period_days} days")));
+    $this->db->group_by('jenis_pemeriksaan');
+    $this->db->order_by('count', 'DESC');
+    $stats['by_type'] = $this->db->get('pemeriksaan_lab')->result_array();
+    
+    // Average time by examination type
+    $this->db->select('jenis_pemeriksaan, AVG(TIMESTAMPDIFF(HOUR, started_at, completed_at)) as avg_hours');
+    $this->db->where('status_pemeriksaan', 'selesai');
+    $this->db->where('started_at IS NOT NULL');
+    $this->db->where('completed_at IS NOT NULL');
+    $this->db->where('completed_at >=', date('Y-m-d', strtotime("-{$period_days} days")));
+    $this->db->group_by('jenis_pemeriksaan');
+    $stats['avg_time_by_type'] = $this->db->get('pemeriksaan_lab')->result_array();
+    
+    return $stats;
+}
+
+
+public function get_petugas_info_safe($petugas_id)
+{
+    if (!$petugas_id) {
+        return array('nama_petugas' => 'N/A');
+    }
+    
+    $this->db->select('nama_petugas');
+    $this->db->where('petugas_id', $petugas_id);
+    $result = $this->db->get('petugas_lab')->row_array();
+    
+    return $result ?: array('nama_petugas' => 'N/A');
+}
+
+  public function get_reagent_inventory($filters = array()) {
+        $this->db->select('*');
+        $this->db->from('reagen');
+        
+        if (isset($filters['status'])) {
+            if ($filters['status'] == 'alert') {
+                $this->db->where('(status = "Hampir Habis" OR status = "Kadaluarsa" OR jumlah_stok <= stok_minimal)');
+            } elseif ($filters['status'] == 'normal') {
+                $this->db->where('status = "Tersedia" AND jumlah_stok > stok_minimal');
+            } elseif ($filters['status'] == 'low_stock') {
+                $this->db->where('jumlah_stok <=', 'stok_minimal', FALSE);
+            } elseif ($filters['status'] == 'expired') {
+                $this->db->where('status', 'Kadaluarsa');
+            } else {
+                $this->db->where('status', $filters['status']);
+            }
+        }
+        
+        if (isset($filters['location']) && $filters['location']) {
+            $this->db->where('lokasi_penyimpanan', $filters['location']);
+        }
+        
+        if (isset($filters['expired_soon']) && $filters['expired_soon']) {
+            $this->db->where('expired_date <=', date('Y-m-d', strtotime("+{$filters['expired_soon']} days")));
+        }
+        
+        if (isset($filters['search']) && $filters['search']) {
+            $this->db->group_start();
+            $this->db->like('nama_reagen', $filters['search']);
+            $this->db->or_like('kode_unik', $filters['search']);
+            $this->db->or_like('lokasi_penyimpanan', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        $this->db->order_by('nama_reagen', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get equipment inventory with filters
+     */
+    public function get_equipment_inventory($filters = array()) {
+        $this->db->select('*');
+        $this->db->from('alat_laboratorium');
+        
+        if (isset($filters['status'])) {
+            if ($filters['status'] == 'alert') {
+                $this->db->where('(status_alat = "Perlu Kalibrasi" OR status_alat = "Rusak" OR jadwal_kalibrasi <= CURDATE())');
+            } elseif ($filters['status'] == 'normal') {
+                $this->db->where('status_alat = "Normal" AND (jadwal_kalibrasi IS NULL OR jadwal_kalibrasi > CURDATE())');
+            } elseif ($filters['status'] == 'critical') {
+                $this->db->where('status_alat', 'Rusak');
+            } else {
+                $this->db->where('status_alat', $filters['status']);
+            }
+        }
+        
+        if (isset($filters['location']) && $filters['location']) {
+            $this->db->where('lokasi', $filters['location']);
+        }
+        
+        if (isset($filters['maintenance_due']) && $filters['maintenance_due']) {
+            $this->db->where('jadwal_kalibrasi <=', date('Y-m-d'));
+        }
+        
+        if (isset($filters['search']) && $filters['search']) {
+            $this->db->group_start();
+            $this->db->like('nama_alat', $filters['search']);
+            $this->db->or_like('kode_unik', $filters['search']);
+            $this->db->or_like('merek_model', $filters['search']);
+            $this->db->or_like('lokasi', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        $this->db->order_by('nama_alat', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get single reagent by ID
+     */
+    public function get_reagent_by_id($reagent_id) {
+        $this->db->where('reagen_id', $reagent_id);
+        return $this->db->get('reagen')->row_array();
+    }
+
+    /**
+     * Get single equipment by ID
+     */
+    public function get_equipment_by_id($equipment_id) {
+        $this->db->where('alat_id', $equipment_id);
+        return $this->db->get('alat_laboratorium')->row_array();
+    }
+
+    /**
+     * Create new reagent
+     */
+    public function create_reagent($data) {
+        // Auto-determine status based on stock and expiry
+        if (isset($data['jumlah_stok']) && isset($data['stok_minimal'])) {
+            if ($data['jumlah_stok'] <= 0) {
+                $data['status'] = 'Habis';
+            } elseif ($data['jumlah_stok'] <= $data['stok_minimal']) {
+                $data['status'] = 'Hampir Habis';
+            } else {
+                $data['status'] = 'Tersedia';
+            }
+        }
+        
+        // Check expiry date
+        if (isset($data['expired_date']) && $data['expired_date']) {
+            if (strtotime($data['expired_date']) <= time()) {
+                $data['status'] = 'Kadaluarsa';
+            }
+        }
+        
+        return $this->db->insert('reagen', $data);
+    }
+
+    /**
+     * Update reagent
+     */
+    public function update_reagent($reagent_id, $data) {
+        // Auto-determine status based on stock and expiry
+        if (isset($data['jumlah_stok']) && isset($data['stok_minimal'])) {
+            if ($data['jumlah_stok'] <= 0) {
+                $data['status'] = 'Habis';
+            } elseif ($data['jumlah_stok'] <= $data['stok_minimal']) {
+                $data['status'] = 'Hampir Habis';
+            } else {
+                $data['status'] = 'Tersedia';
+            }
+        }
+        
+        // Check expiry date
+        if (isset($data['expired_date']) && $data['expired_date']) {
+            if (strtotime($data['expired_date']) <= time()) {
+                $data['status'] = 'Kadaluarsa';
+            }
+        }
+        
+        $this->db->where('reagen_id', $reagent_id);
+        return $this->db->update('reagen', $data);
+    }
+
+    /**
+     * Create new equipment
+     */
+    public function create_equipment($data) {
+        return $this->db->insert('alat_laboratorium', $data);
+    }
+
+    /**
+     * Update equipment
+     */
+    public function update_equipment($equipment_id, $data) {
+        $this->db->where('alat_id', $equipment_id);
+        return $this->db->update('alat_laboratorium', $data);
+    }
+
+    /**
+     * Update reagent stock (existing method)
+     */
+    public function update_reagent_stock($reagent_id, $data) {
+        // Auto-update status based on stock level
+        if (isset($data['jumlah_stok'])) {
+            $this->db->select('stok_minimal');
+            $this->db->where('reagen_id', $reagent_id);
+            $reagent = $this->db->get('reagen')->row_array();
+            
+            if ($data['jumlah_stok'] <= 0) {
+                $data['status'] = 'Habis';
+            } elseif ($data['jumlah_stok'] <= $reagent['stok_minimal']) {
+                $data['status'] = 'Hampir Habis';
+            } else {
+                $data['status'] = 'Tersedia';
+            }
+        }
+        
+        // Check expiry date
+        if (isset($data['expired_date'])) {
+            if (strtotime($data['expired_date']) <= time()) {
+                $data['status'] = 'Kadaluarsa';
+            }
+        }
+        
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        
+        $this->db->where('reagen_id', $reagent_id);
+        return $this->db->update('reagen', $data);
+    }
+
+    /**
+     * Update equipment status (existing method)
+     */
+    public function update_equipment_status($equipment_id, $data) {
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        
+        $this->db->where('alat_id', $equipment_id);
+        return $this->db->update('alat_laboratorium', $data);
+    }
+
+    /**
+     * Get inventory alerts
+     */
+    public function get_inventory_alerts() {
+        $alerts = array();
+        
+        // Low stock reagents
+        $this->db->select('nama_reagen, jumlah_stok, stok_minimal');
+        $this->db->where('jumlah_stok <=', 'stok_minimal', FALSE);
+        $low_stock = $this->db->get('reagen')->result_array();
+        
+        foreach ($low_stock as $reagent) {
+            $alerts[] = array(
+                'type' => 'low_stock',
+                'severity' => 'warning',
+                'item' => $reagent['nama_reagen'],
+                'current_stock' => $reagent['jumlah_stok'],
+                'minimum_stock' => $reagent['stok_minimal'],
+                'message' => "Stok {$reagent['nama_reagen']} rendah ({$reagent['jumlah_stok']} tersisa)"
+            );
+        }
+        
+        // Expired reagents
+        $this->db->select('nama_reagen, expired_date');
+        $this->db->where('expired_date <=', date('Y-m-d'));
+        $expired = $this->db->get('reagen')->result_array();
+        
+        foreach ($expired as $reagent) {
+            $alerts[] = array(
+                'type' => 'expired',
+                'severity' => 'urgent',
+                'item' => $reagent['nama_reagen'],
+                'expired_date' => $reagent['expired_date'],
+                'message' => "Reagen {$reagent['nama_reagen']} telah kadaluarsa"
+            );
+        }
+        
+        // Soon to expire reagents (within 30 days)
+        $this->db->select('nama_reagen, expired_date');
+        $this->db->where('expired_date <=', date('Y-m-d', strtotime('+30 days')));
+        $this->db->where('expired_date >', date('Y-m-d'));
+        $soon_expired = $this->db->get('reagen')->result_array();
+        
+        foreach ($soon_expired as $reagent) {
+            $days_left = ceil((strtotime($reagent['expired_date']) - time()) / (60 * 60 * 24));
+            $alerts[] = array(
+                'type' => 'expiring_soon',
+                'severity' => 'warning',
+                'item' => $reagent['nama_reagen'],
+                'days_left' => $days_left,
+                'message' => "Reagen {$reagent['nama_reagen']} akan kadaluarsa dalam {$days_left} hari"
+            );
+        }
+        
+        // Equipment maintenance due
+        $this->db->select('nama_alat, jadwal_kalibrasi');
+        $this->db->where('jadwal_kalibrasi <=', date('Y-m-d'));
+        $maintenance_due = $this->db->get('alat_laboratorium')->result_array();
+        
+        foreach ($maintenance_due as $equipment) {
+            $days_overdue = ceil((time() - strtotime($equipment['jadwal_kalibrasi'])) / (60 * 60 * 24));
+            $alerts[] = array(
+                'type' => 'maintenance',
+                'severity' => $days_overdue > 7 ? 'urgent' : 'info',
+                'item' => $equipment['nama_alat'],
+                'due_date' => $equipment['jadwal_kalibrasi'],
+                'days_overdue' => $days_overdue,
+                'message' => "Kalibrasi {$equipment['nama_alat']} terlambat {$days_overdue} hari"
+            );
+        }
+        
+        // Equipment broken
+        $this->db->select('nama_alat');
+        $this->db->where('status_alat', 'Rusak');
+        $broken_equipment = $this->db->get('alat_laboratorium')->result_array();
+        
+        foreach ($broken_equipment as $equipment) {
+            $alerts[] = array(
+                'type' => 'broken_equipment',
+                'severity' => 'urgent',
+                'item' => $equipment['nama_alat'],
+                'message' => "Peralatan {$equipment['nama_alat']} dalam kondisi rusak"
+            );
+        }
+        
+        return $alerts;
+    }
+
+    // ==========================================
+    // EXISTING METHODS (kept as is)
+    // ==========================================
 
     public function get_pending_requests($limit = null) {
         $this->db->select('pl.*, p.nama as nama_pasien, p.nik, p.jenis_kelamin, p.umur, p.dokter_perujuk, p.asal_rujukan');
@@ -281,79 +672,6 @@ class Laboratorium_model extends CI_Model {
         return $this->db->get()->result_array();
     }
 
-    public function get_reagent_inventory($filters = array()) {
-        $this->db->select('*');
-        $this->db->from('reagen');
-        
-        if (isset($filters['status'])) {
-            $this->db->where('status', $filters['status']);
-        }
-        
-        if (isset($filters['low_stock']) && $filters['low_stock']) {
-            $this->db->where('jumlah_stok <=', 'stok_minimal', FALSE);
-        }
-        
-        if (isset($filters['expired_soon'])) {
-            $this->db->where('expired_date <=', date('Y-m-d', strtotime("+{$filters['expired_soon']} days")));
-        }
-        
-        $this->db->order_by('nama_reagen', 'ASC');
-        return $this->db->get()->result_array();
-    }
-
-    public function get_equipment_inventory($filters = array()) {
-        $this->db->select('*');
-        $this->db->from('alat_laboratorium');
-        
-        if (isset($filters['status'])) {
-            $this->db->where('status_alat', $filters['status']);
-        }
-        
-        if (isset($filters['maintenance_due']) && $filters['maintenance_due']) {
-            $this->db->where('jadwal_kalibrasi <=', date('Y-m-d'));
-        }
-        
-        $this->db->order_by('nama_alat', 'ASC');
-        return $this->db->get()->result_array();
-    }
-
-
-    public function update_reagent_stock($reagent_id, $data) {
-        // Auto-update status based on stock level
-        if (isset($data['jumlah_stok'])) {
-            $this->db->select('stok_minimal');
-            $this->db->where('reagen_id', $reagent_id);
-            $reagent = $this->db->get('reagen')->row_array();
-            
-            if ($data['jumlah_stok'] <= 0) {
-                $data['status'] = 'Habis';
-            } elseif ($data['jumlah_stok'] <= $reagent['stok_minimal']) {
-                $data['status'] = 'Hampir Habis';
-            } else {
-                $data['status'] = 'Tersedia';
-            }
-        }
-        
-        // Check expiry date
-        if (isset($data['expired_date'])) {
-            if (strtotime($data['expired_date']) <= time()) {
-                $data['status'] = 'Kadaluarsa';
-            }
-        }
-        
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        
-        $this->db->where('reagen_id', $reagent_id);
-        return $this->db->update('reagen', $data);
-    }
-
-    public function update_equipment_status($equipment_id, $data) {
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        
-        $this->db->where('alat_id', $equipment_id);
-        return $this->db->update('alat_laboratorium', $data);
-    }
-
     public function get_reagent_usage_history($reagent_id, $limit = 10) {
         // This would require a reagent usage log table
         // For now, return empty array
@@ -412,7 +730,6 @@ class Laboratorium_model extends CI_Model {
         return $report;
     }
 
-
     public function get_examination_types() {
         $this->db->select('DISTINCT jenis_pemeriksaan');
         $this->db->order_by('jenis_pemeriksaan', 'ASC');
@@ -448,6 +765,7 @@ class Laboratorium_model extends CI_Model {
     public function get_examination_status_history($examination_id) {
         return $this->get_sample_timeline($examination_id);
     }  
+
     public function get_lab_dashboard_stats() {
         $stats = array();
         
@@ -481,7 +799,7 @@ class Laboratorium_model extends CI_Model {
     }
 
     // ==========================================
-    // INCOMING REQUESTS - FIXED
+    // INCOMING REQUESTS - ENHANCED
     // ==========================================
 
     public function get_incoming_requests_paginated($filters = array(), $limit = 20, $offset = 0) {
@@ -578,7 +896,7 @@ class Laboratorium_model extends CI_Model {
     }
 
     // ==========================================
-    // SAMPLE DATA - FIXED
+    // SAMPLE DATA - ENHANCED
     // ==========================================
 
     public function get_samples_data_enhanced($filters = array(), $limit = 20, $offset = 0) {
@@ -763,58 +1081,6 @@ class Laboratorium_model extends CI_Model {
         return $this->db->delete('timeline_progres');
     }
 
-    public function get_timeline_stats($examination_id) {
-        $stats = array();
-        
-        // Total entries
-        $this->db->where('pemeriksaan_id', $examination_id);
-        $stats['total_entries'] = $this->db->count_all_results('timeline_progres');
-        
-        // First and last entry
-        $this->db->select('MIN(tanggal_update) as first_entry, MAX(tanggal_update) as last_entry');
-        $this->db->where('pemeriksaan_id', $examination_id);
-        $result = $this->db->get('timeline_progres')->row_array();
-        
-        $stats['first_entry'] = $result['first_entry'];
-        $stats['last_entry'] = $result['last_entry'];
-        
-        // Calculate time span
-        if ($result['first_entry'] && $result['last_entry']) {
-            $first = new DateTime($result['first_entry']);
-            $last = new DateTime($result['last_entry']);
-            $diff = $first->diff($last);
-            $stats['time_span_hours'] = ($diff->days * 24) + $diff->h + ($diff->i / 60);
-        } else {
-            $stats['time_span_hours'] = 0;
-        }
-        
-        // Average time between entries
-        if ($stats['total_entries'] > 1) {
-            $stats['avg_time_between_entries'] = $stats['time_span_hours'] / ($stats['total_entries'] - 1);
-        } else {
-            $stats['avg_time_between_entries'] = 0;
-        }
-        
-        return $stats;
-    }
-
-    public function get_recent_timeline_activities($limit = 10, $petugas_id = null) {
-        $this->db->select('tp.*, pt.nama_petugas, pl.nomor_pemeriksaan, p.nama as nama_pasien');
-        $this->db->from('timeline_progres tp');
-        $this->db->join('petugas_lab pt', 'tp.petugas_id = pt.petugas_id', 'left');
-        $this->db->join('pemeriksaan_lab pl', 'tp.pemeriksaan_id = pl.pemeriksaan_id');
-        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
-        
-        if ($petugas_id) {
-            $this->db->where('tp.petugas_id', $petugas_id);
-        }
-        
-        $this->db->order_by('tp.tanggal_update', 'DESC');
-        $this->db->limit($limit);
-        
-        return $this->db->get()->result_array();
-    }
-
     // ==========================================
     // HELPER METHODS
     // ==========================================
@@ -857,49 +1123,6 @@ class Laboratorium_model extends CI_Model {
         return $result ? $result['petugas_id'] : null;
     }
 
-    // ==========================================
-    // INVENTORY MANAGEMENT
-    // ==========================================
-
-    public function get_inventory_alerts() {
-        $alerts = array();
-        
-        // Low stock reagents
-        $this->db->select('nama_reagen, jumlah_stok, stok_minimal');
-        $this->db->where('jumlah_stok <=', 'stok_minimal', FALSE);
-        $low_stock = $this->db->get('reagen')->result_array();
-        
-        foreach ($low_stock as $reagent) {
-            $alerts[] = array(
-                'type' => 'low_stock',
-                'severity' => 'warning',
-                'item' => $reagent['nama_reagen'],
-                'current_stock' => $reagent['jumlah_stok'],
-                'minimum_stock' => $reagent['stok_minimal'],
-                'message' => "Stok {$reagent['nama_reagen']} rendah ({$reagent['jumlah_stok']} tersisa)"
-            );
-        }
-        
-        // Equipment maintenance due
-        $this->db->select('nama_alat, jadwal_kalibrasi');
-        $this->db->where('jadwal_kalibrasi <=', date('Y-m-d'));
-        $maintenance_due = $this->db->get('alat_laboratorium')->result_array();
-        
-        foreach ($maintenance_due as $equipment) {
-            $days_overdue = ceil((time() - strtotime($equipment['jadwal_kalibrasi'])) / (60 * 60 * 24));
-            $alerts[] = array(
-                'type' => 'maintenance',
-                'severity' => $days_overdue > 7 ? 'urgent' : 'info',
-                'item' => $equipment['nama_alat'],
-                'due_date' => $equipment['jadwal_kalibrasi'],
-                'days_overdue' => $days_overdue,
-                'message' => "Kalibrasi {$equipment['nama_alat']} terlambat {$days_overdue} hari"
-            );
-        }
-        
-        return $alerts;
-    }
-
     public function get_lab_performance_stats($period = '30') {
         $stats = array();
         
@@ -930,461 +1153,371 @@ class Laboratorium_model extends CI_Model {
         return $stats;
     }
 
-public function get_existing_results($examination_id, $jenis_pemeriksaan)
-{
-    $results = null;
-    
-    switch (strtolower($jenis_pemeriksaan)) {
-        case 'kimia darah':
-            $results = $this->get_kimia_darah_results($examination_id);
-            break;
-        case 'hematologi':
-            $results = $this->get_hematologi_results($examination_id);
-            break;
-        case 'urinologi':
-            $results = $this->get_urinologi_results($examination_id);
-            break;
-        case 'serologi':
-        case 'serologi imunologi':
-            $results = $this->get_serologi_results($examination_id);
-            break;
-        case 'tbc':
-            $results = $this->get_tbc_results($examination_id);
-            break;
-        case 'ims':
-            $results = $this->get_ims_results($examination_id);
-            break;
-        case 'mls':
-            $results = $this->get_mls_results($examination_id);
-            break;
+    public function get_existing_results($examination_id, $jenis_pemeriksaan) {
+        $results = null;
+        
+        switch (strtolower($jenis_pemeriksaan)) {
+            case 'kimia darah':
+                $results = $this->get_kimia_darah_results($examination_id);
+                break;
+            case 'hematologi':
+                $results = $this->get_hematologi_results($examination_id);
+                break;
+            case 'urinologi':
+                $results = $this->get_urinologi_results($examination_id);
+                break;
+            case 'serologi':
+            case 'serologi imunologi':
+                $results = $this->get_serologi_results($examination_id);
+                break;
+            case 'tbc':
+                $results = $this->get_tbc_results($examination_id);
+                break;
+            case 'ims':
+                $results = $this->get_ims_results($examination_id);
+                break;
+            case 'mls':
+                $results = $this->get_mls_results($examination_id);
+                break;
+        }
+        
+        return $results;
     }
-    
-    return $results;
-}
 
-/**
- * Save or update kimia darah results
- */
-public function save_or_update_kimia_darah_results($examination_id, $data)
-{
-    // Check if results already exist
-    $existing = $this->get_kimia_darah_results($examination_id);
-    
-    if ($existing) {
-        // Update existing results
-        $this->db->where('pemeriksaan_id', $examination_id);
-        return $this->db->update('kimia_darah', $data);
-    } else {
-        // Insert new results
-        return $this->db->insert('kimia_darah', $data);
+    // Save or update methods
+    public function save_or_update_kimia_darah_results($examination_id, $data) {
+        $existing = $this->get_kimia_darah_results($examination_id);
+        
+        if ($existing) {
+            $this->db->where('pemeriksaan_id', $examination_id);
+            return $this->db->update('kimia_darah', $data);
+        } else {
+            return $this->db->insert('kimia_darah', $data);
+        }
     }
-}
 
-/**
- * Save or update hematologi results
- */
-public function save_or_update_hematologi_results($examination_id, $data)
-{
-    $existing = $this->get_hematologi_results($examination_id);
-    
-    if ($existing) {
-        $this->db->where('pemeriksaan_id', $examination_id);
-        return $this->db->update('hematologi', $data);
-    } else {
-        return $this->db->insert('hematologi', $data);
+    public function save_or_update_hematologi_results($examination_id, $data) {
+        $existing = $this->get_hematologi_results($examination_id);
+        
+        if ($existing) {
+            $this->db->where('pemeriksaan_id', $examination_id);
+            return $this->db->update('hematologi', $data);
+        } else {
+            return $this->db->insert('hematologi', $data);
+        }
     }
-}
 
-/**
- * Save or update urinologi results
- */
-public function save_or_update_urinologi_results($examination_id, $data)
-{
-    $existing = $this->get_urinologi_results($examination_id);
-    
-    if ($existing) {
-        $this->db->where('pemeriksaan_id', $examination_id);
-        return $this->db->update('urinologi', $data);
-    } else {
-        return $this->db->insert('urinologi', $data);
+    public function save_or_update_urinologi_results($examination_id, $data) {
+        $existing = $this->get_urinologi_results($examination_id);
+        
+        if ($existing) {
+            $this->db->where('pemeriksaan_id', $examination_id);
+            return $this->db->update('urinologi', $data);
+        } else {
+            return $this->db->insert('urinologi', $data);
+        }
     }
-}
 
-/**
- * Save or update serologi results
- */
-public function save_or_update_serologi_results($examination_id, $data)
-{
-    $existing = $this->get_serologi_results($examination_id);
-    
-    if ($existing) {
-        $this->db->where('pemeriksaan_id', $examination_id);
-        return $this->db->update('serologi_imunologi', $data);
-    } else {
-        return $this->db->insert('serologi_imunologi', $data);
+    public function save_or_update_serologi_results($examination_id, $data) {
+        $existing = $this->get_serologi_results($examination_id);
+        
+        if ($existing) {
+            $this->db->where('pemeriksaan_id', $examination_id);
+            return $this->db->update('serologi_imunologi', $data);
+        } else {
+            return $this->db->insert('serologi_imunologi', $data);
+        }
     }
-}
 
-/**
- * Save or update TBC results
- */
-public function save_or_update_tbc_results($examination_id, $data)
-{
-    $existing = $this->get_tbc_results($examination_id);
-    
-    if ($existing) {
-        $this->db->where('pemeriksaan_id', $examination_id);
-        return $this->db->update('tbc', $data);
-    } else {
-        return $this->db->insert('tbc', $data);
+    public function save_or_update_tbc_results($examination_id, $data) {
+        $existing = $this->get_tbc_results($examination_id);
+        
+        if ($existing) {
+            $this->db->where('pemeriksaan_id', $examination_id);
+            return $this->db->update('tbc', $data);
+        } else {
+            return $this->db->insert('tbc', $data);
+        }
     }
-}
 
-/**
- * Save or update IMS results
- */
-public function save_or_update_ims_results($examination_id, $data)
-{
-    $existing = $this->get_ims_results($examination_id);
-    
-    if ($existing) {
-        $this->db->where('pemeriksaan_id', $examination_id);
-        return $this->db->update('ims', $data);
-    } else {
-        return $this->db->insert('ims', $data);
+    public function save_or_update_ims_results($examination_id, $data) {
+        $existing = $this->get_ims_results($examination_id);
+        
+        if ($existing) {
+            $this->db->where('pemeriksaan_id', $examination_id);
+            return $this->db->update('ims', $data);
+        } else {
+            return $this->db->insert('ims', $data);
+        }
     }
-}
 
-/**
- * Save or update MLS results
- */
-public function save_or_update_mls_results($examination_id, $data)
-{
-    $existing = $this->get_mls_results($examination_id);
-    
-    if ($existing) {
-        $this->db->where('pemeriksaan_id', $examination_id);
-        return $this->db->update('mls', $data);
-    } else {
-        return $this->db->insert('mls', $data);
+    public function save_or_update_mls_results($examination_id, $data) {
+        $existing = $this->get_mls_results($examination_id);
+        
+        if ($existing) {
+            $this->db->where('pemeriksaan_id', $examination_id);
+            return $this->db->update('mls', $data);
+        } else {
+            return $this->db->insert('mls', $data);
+        }
     }
-}
 
-/**
- * Get formatted results for quality control review
- */
-public function get_formatted_results_by_examination($examination_id)
-{
-    $examination = $this->get_examination_by_id($examination_id);
-    if (!$examination) {
-        return null;
-    }
-    
-    $jenis_pemeriksaan = strtolower($examination['jenis_pemeriksaan']);
-    $formatted_results = array();
-    
-    switch ($jenis_pemeriksaan) {
-        case 'kimia darah':
-            $results = $this->get_kimia_darah_results($examination_id);
-            if ($results) {
-                $formatted_results = array(
-                    'Gula Darah Sewaktu' => $results['gula_darah_sewaktu'] ? $results['gula_darah_sewaktu'] . ' mg/dL' : '-',
-                    'Gula Darah Puasa' => $results['gula_darah_puasa'] ? $results['gula_darah_puasa'] . ' mg/dL' : '-',
-                    'Gula Darah 2J PP' => $results['gula_darah_2jam_pp'] ? $results['gula_darah_2jam_pp'] . ' mg/dL' : '-',
-                    'Kolesterol Total' => $results['cholesterol_total'] ? $results['cholesterol_total'] . ' mg/dL' : '-',
-                    'Kolesterol HDL' => $results['cholesterol_hdl'] ? $results['cholesterol_hdl'] . ' mg/dL' : '-',
-                    'Kolesterol LDL' => $results['cholesterol_ldl'] ? $results['cholesterol_ldl'] . ' mg/dL' : '-',
-                    'Trigliserida' => $results['trigliserida'] ? $results['trigliserida'] . ' mg/dL' : '-',
-                    'Asam Urat' => $results['asam_urat'] ? $results['asam_urat'] . ' mg/dL' : '-',
-                    'Ureum' => $results['ureum'] ? $results['ureum'] . ' mg/dL' : '-',
-                    'Kreatinin' => $results['creatinin'] ? $results['creatinin'] . ' mg/dL' : '-',
-                    'SGPT' => $results['sgpt'] ? $results['sgpt'] . ' U/L' : '-',
-                    'SGOT' => $results['sgot'] ? $results['sgot'] . ' U/L' : '-'
-                );
-            }
-            break;
-            
-        case 'hematologi':
-            $results = $this->get_hematologi_results($examination_id);
-            if ($results) {
-                $formatted_results = array(
-                    'Hemoglobin' => $results['hemoglobin'] ? $results['hemoglobin'] . ' g/dL' : '-',
-                    'Hematokrit' => $results['hematokrit'] ? $results['hematokrit'] . '%' : '-',
-                    'Laju Endap Darah' => $results['laju_endap_darah'] ? $results['laju_endap_darah'] . ' mm/jam' : '-',
-                    'Clotting Time' => $results['clotting_time'] ?: '-',
-                    'Bleeding Time' => $results['bleeding_time'] ?: '-',
-                    'Golongan Darah' => $results['golongan_darah'] ?: '-',
-                    'Rhesus' => $results['rhesus'] ? ($results['rhesus'] == '+' ? 'Positif' : 'Negatif') : '-',
-                    'Malaria' => $results['malaria'] ?: '-'
-                );
-            }
-            break;
-            
-        case 'urinologi':
-            $results = $this->get_urinologi_results($examination_id);
-            if ($results) {
-                $formatted_results = array(
-                    'Makroskopis' => $results['makroskopis'] ?: '-',
-                    'Mikroskopis' => $results['mikroskopis'] ?: '-',
-                    'pH Kimia' => $results['kimia_ph'] ?: '-',
-                    'Protein' => $results['protein'] ?: '-',
-                    'Tes Kehamilan' => $results['tes_kehamilan'] ?: '-'
-                );
-            }
-            break;
-            
-        case 'serologi':
-        case 'serologi imunologi':
-            $results = $this->get_serologi_results($examination_id);
-            if ($results) {
-                $formatted_results = array(
-                    'RDT Antigen' => $results['rdt_antigen'] ?: '-',
-                    'Widal' => $results['widal'] ?: '-',
-                    'HbsAg' => $results['hbsag'] ?: '-',
-                    'NS1' => $results['ns1'] ?: '-',
-                    'HIV' => $results['hiv'] ?: '-'
-                );
-            }
-            break;
-            
-        case 'tbc':
-            $results = $this->get_tbc_results($examination_id);
-            if ($results) {
-                $formatted_results = array(
-                    'Dahak' => $results['dahak'] ?: '-',
-                    'TCM' => $results['tcm'] ?: '-'
-                );
-            }
-            break;
-            
-        case 'ims':
-            $results = $this->get_ims_results($examination_id);
-            if ($results) {
-                $formatted_results = array(
-                    'Sifilis' => $results['sifilis'] ?: '-',
-                    'Duh Tubuh' => $results['duh_tubuh'] ?: '-'
-                );
-            }
-            break;
-            
-        case 'mls':
-            $results = $this->get_mls_results($examination_id);
-            if ($results && !empty($results)) {
-                foreach ($results as $result) {
-                    $formatted_results[$result['jenis_tes']] = $result['hasil'] . 
-                        ($result['satuan'] ? ' ' . $result['satuan'] : '') . 
-                        ($result['nilai_rujukan'] ? ' (Normal: ' . $result['nilai_rujukan'] . ')' : '');
+    public function get_formatted_results_by_examination($examination_id) {
+        $examination = $this->get_examination_by_id($examination_id);
+        if (!$examination) {
+            return null;
+        }
+        
+        $jenis_pemeriksaan = strtolower($examination['jenis_pemeriksaan']);
+        $formatted_results = array();
+        
+        switch ($jenis_pemeriksaan) {
+            case 'kimia darah':
+                $results = $this->get_kimia_darah_results($examination_id);
+                if ($results) {
+                    $formatted_results = array(
+                        'Gula Darah Sewaktu' => $results['gula_darah_sewaktu'] ? $results['gula_darah_sewaktu'] . ' mg/dL' : '-',
+                        'Gula Darah Puasa' => $results['gula_darah_puasa'] ? $results['gula_darah_puasa'] . ' mg/dL' : '-',
+                        'Gula Darah 2J PP' => $results['gula_darah_2jam_pp'] ? $results['gula_darah_2jam_pp'] . ' mg/dL' : '-',
+                        'Kolesterol Total' => $results['cholesterol_total'] ? $results['cholesterol_total'] . ' mg/dL' : '-',
+                        'Kolesterol HDL' => $results['cholesterol_hdl'] ? $results['cholesterol_hdl'] . ' mg/dL' : '-',
+                        'Kolesterol LDL' => $results['cholesterol_ldl'] ? $results['cholesterol_ldl'] . ' mg/dL' : '-',
+                        'Trigliserida' => $results['trigliserida'] ? $results['trigliserida'] . ' mg/dL' : '-',
+                        'Asam Urat' => $results['asam_urat'] ? $results['asam_urat'] . ' mg/dL' : '-',
+                        'Ureum' => $results['ureum'] ? $results['ureum'] . ' mg/dL' : '-',
+                        'Kreatinin' => $results['creatinin'] ? $results['creatinin'] . ' mg/dL' : '-',
+                        'SGPT' => $results['sgpt'] ? $results['sgpt'] . ' U/L' : '-',
+                        'SGOT' => $results['sgot'] ? $results['sgot'] . ' U/L' : '-'
+                    );
                 }
-            }
-            break;
-    }
-    
-    return $formatted_results;
-}
-
-
-public function get_validation_statistics($period_days = 30)
-{
-    $stats = array();
-    
-    // Daily validation trend
-    $this->db->select('DATE(completed_at) as date, COUNT(*) as count');
-    $this->db->where('status_pemeriksaan', 'selesai');
-    $this->db->where('completed_at >=', date('Y-m-d', strtotime("-{$period_days} days")));
-    $this->db->group_by('DATE(completed_at)');
-    $this->db->order_by('date', 'ASC');
-    $stats['daily_trend'] = $this->db->get('pemeriksaan_lab')->result_array();
-    
-    // Validation by examination type
-    $this->db->select('jenis_pemeriksaan, COUNT(*) as count');
-    $this->db->where('status_pemeriksaan', 'selesai');
-    $this->db->where('completed_at >=', date('Y-m-d', strtotime("-{$period_days} days")));
-    $this->db->group_by('jenis_pemeriksaan');
-    $this->db->order_by('count', 'DESC');
-    $stats['by_type'] = $this->db->get('pemeriksaan_lab')->result_array();
-    
-    // Average time by examination type
-    $this->db->select('jenis_pemeriksaan, AVG(TIMESTAMPDIFF(HOUR, started_at, completed_at)) as avg_hours');
-    $this->db->where('status_pemeriksaan', 'selesai');
-    $this->db->where('started_at IS NOT NULL');
-    $this->db->where('completed_at IS NOT NULL');
-    $this->db->where('completed_at >=', date('Y-m-d', strtotime("-{$period_days} days")));
-    $this->db->group_by('jenis_pemeriksaan');
-    $stats['avg_time_by_type'] = $this->db->get('pemeriksaan_lab')->result_array();
-    
-    return $stats;
-}
-public function get_results_pending_validation_enhanced()
-{
-    $this->db->select('pl.*, p.nama as nama_pasien, p.nik, 
-                      COALESCE(pt.nama_petugas, "N/A") as nama_petugas,
-                      TIMESTAMPDIFF(HOUR, pl.updated_at, NOW()) as hours_waiting');
-    $this->db->from('pemeriksaan_lab pl');
-    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id', 'left');
-    $this->db->join('petugas_lab pt', 'pl.petugas_id = pt.petugas_id', 'left');
-    $this->db->where('pl.status_pemeriksaan', 'progress');
-    
-    // Check if results exist
-    $this->db->where('(
-        EXISTS (SELECT 1 FROM kimia_darah WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
-        EXISTS (SELECT 1 FROM hematologi WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
-        EXISTS (SELECT 1 FROM urinologi WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
-        EXISTS (SELECT 1 FROM serologi_imunologi WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
-        EXISTS (SELECT 1 FROM tbc WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
-        EXISTS (SELECT 1 FROM ims WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
-        EXISTS (SELECT 1 FROM mls WHERE pemeriksaan_id = pl.pemeriksaan_id)
-    )');
-    
-    $this->db->order_by('pl.created_at', 'ASC');
-    return $this->db->get()->result_array();
-}
-
-/**
- * Get recent validations - Enhanced dengan proper JOIN
- */
-public function get_recent_validations_enhanced($limit = 10)
-{
-    $this->db->select('pl.*, p.nama as nama_pasien, p.nik,
-                      COALESCE(pt.nama_petugas, "System") as nama_petugas');
-    $this->db->from('pemeriksaan_lab pl');
-    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id', 'left');
-    $this->db->join('petugas_lab pt', 'pl.petugas_id = pt.petugas_id', 'left');
-    $this->db->where('pl.status_pemeriksaan', 'selesai');
-    $this->db->where('DATE(pl.completed_at)', date('Y-m-d'));
-    $this->db->order_by('pl.completed_at', 'DESC');
-    $this->db->limit($limit);
-    
-    return $this->db->get()->result_array();
-}
-
-/**
- * Enhanced validate examination result with timeline
- */
-public function validate_examination_result_enhanced($examination_id, $validator_id = null, $notes = null)
-{
-    $this->db->trans_start();
-    
-    try {
-        // Update examination status
-        $data = array(
-            'status_pemeriksaan' => 'selesai',
-            'completed_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        );
-        
-        if ($notes) {
-            $data['keterangan'] = $notes;
+                break;
+                
+            case 'hematologi':
+                $results = $this->get_hematologi_results($examination_id);
+                if ($results) {
+                    $formatted_results = array(
+                        'Hemoglobin' => $results['hemoglobin'] ? $results['hemoglobin'] . ' g/dL' : '-',
+                        'Hematokrit' => $results['hematokrit'] ? $results['hematokrit'] . '%' : '-',
+                        'Laju Endap Darah' => $results['laju_endap_darah'] ? $results['laju_endap_darah'] . ' mm/jam' : '-',
+                        'Clotting Time' => $results['clotting_time'] ?: '-',
+                        'Bleeding Time' => $results['bleeding_time'] ?: '-',
+                        'Golongan Darah' => $results['golongan_darah'] ?: '-',
+                        'Rhesus' => $results['rhesus'] ? ($results['rhesus'] == '+' ? 'Positif' : 'Negatif') : '-',
+                        'Malaria' => $results['malaria'] ?: '-'
+                    );
+                }
+                break;
+                
+            case 'urinologi':
+                $results = $this->get_urinologi_results($examination_id);
+                if ($results) {
+                    $formatted_results = array(
+                        'Makroskopis' => $results['makroskopis'] ?: '-',
+                        'Mikroskopis' => $results['mikroskopis'] ?: '-',
+                        'pH Kimia' => $results['kimia_ph'] ?: '-',
+                        'Protein' => $results['protein'] ?: '-',
+                        'Tes Kehamilan' => $results['tes_kehamilan'] ?: '-'
+                    );
+                }
+                break;
+                
+            case 'serologi':
+            case 'serologi imunologi':
+                $results = $this->get_serologi_results($examination_id);
+                if ($results) {
+                    $formatted_results = array(
+                        'RDT Antigen' => $results['rdt_antigen'] ?: '-',
+                        'Widal' => $results['widal'] ?: '-',
+                        'HbsAg' => $results['hbsag'] ?: '-',
+                        'NS1' => $results['ns1'] ?: '-',
+                        'HIV' => $results['hiv'] ?: '-'
+                    );
+                }
+                break;
+                
+            case 'tbc':
+                $results = $this->get_tbc_results($examination_id);
+                if ($results) {
+                    $formatted_results = array(
+                        'Dahak' => $results['dahak'] ?: '-',
+                        'TCM' => $results['tcm'] ?: '-'
+                    );
+                }
+                break;
+                
+            case 'ims':
+                $results = $this->get_ims_results($examination_id);
+                if ($results) {
+                    $formatted_results = array(
+                        'Sifilis' => $results['sifilis'] ?: '-',
+                        'Duh Tubuh' => $results['duh_tubuh'] ?: '-'
+                    );
+                }
+                break;
+                
+            case 'mls':
+                $results = $this->get_mls_results($examination_id);
+                if ($results && !empty($results)) {
+                    foreach ($results as $result) {
+                        $formatted_results[$result['jenis_tes']] = $result['hasil'] . 
+                            ($result['satuan'] ? ' ' . $result['satuan'] : '') . 
+                            ($result['nilai_rujukan'] ? ' (Normal: ' . $result['nilai_rujukan'] . ')' : '');
+                    }
+                }
+                break;
         }
         
-        $this->db->where('pemeriksaan_id', $examination_id);
-        $this->db->update('pemeriksaan_lab', $data);
+        return $formatted_results;
+    }
+
+    public function get_results_pending_validation_enhanced() {
+        $this->db->select('pl.*, p.nama as nama_pasien, p.nik, 
+                          COALESCE(pt.nama_petugas, "N/A") as nama_petugas,
+                          TIMESTAMPDIFF(HOUR, pl.updated_at, NOW()) as hours_waiting');
+        $this->db->from('pemeriksaan_lab pl');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id', 'left');
+        $this->db->join('petugas_lab pt', 'pl.petugas_id = pt.petugas_id', 'left');
+        $this->db->where('pl.status_pemeriksaan', 'progress');
         
-        // Add timeline entry
-        if ($validator_id) {
-            $this->add_sample_timeline(
-                $examination_id, 
-                'Hasil Divalidasi', 
-                $notes ?: 'Hasil pemeriksaan telah divalidasi dan siap diserahkan', 
-                $validator_id
+        // Check if results exist
+        $this->db->where('(
+            EXISTS (SELECT 1 FROM kimia_darah WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
+            EXISTS (SELECT 1 FROM hematologi WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
+            EXISTS (SELECT 1 FROM urinologi WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
+            EXISTS (SELECT 1 FROM serologi_imunologi WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
+            EXISTS (SELECT 1 FROM tbc WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
+            EXISTS (SELECT 1 FROM ims WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
+            EXISTS (SELECT 1 FROM mls WHERE pemeriksaan_id = pl.pemeriksaan_id)
+        )');
+        
+        $this->db->order_by('pl.created_at', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
+    public function get_recent_validations_enhanced($limit = 10) {
+        $this->db->select('pl.*, p.nama as nama_pasien, p.nik,
+                          COALESCE(pt.nama_petugas, "System") as nama_petugas');
+        $this->db->from('pemeriksaan_lab pl');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id', 'left');
+        $this->db->join('petugas_lab pt', 'pl.petugas_id = pt.petugas_id', 'left');
+        $this->db->where('pl.status_pemeriksaan', 'selesai');
+        $this->db->where('DATE(pl.completed_at)', date('Y-m-d'));
+        $this->db->order_by('pl.completed_at', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result_array();
+    }
+
+    public function validate_examination_result_enhanced($examination_id, $validator_id = null, $notes = null) {
+        $this->db->trans_start();
+        
+        try {
+            // Update examination status
+            $data = array(
+                'status_pemeriksaan' => 'selesai',
+                'completed_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             );
+            
+            if ($notes) {
+                $data['keterangan'] = $notes;
+            }
+            
+            $this->db->where('pemeriksaan_id', $examination_id);
+            $this->db->update('pemeriksaan_lab', $data);
+            
+            // Add timeline entry
+            if ($validator_id) {
+                $this->add_sample_timeline(
+                    $examination_id, 
+                    'Hasil Divalidasi', 
+                    $notes ?: 'Hasil pemeriksaan telah divalidasi dan siap diserahkan', 
+                    $validator_id
+                );
+            }
+            
+            $this->db->trans_complete();
+            return $this->db->trans_status();
+            
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            log_message('error', 'Error in validate_examination_result_enhanced: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+
+    public function get_examinations_ready_for_results_enhanced($petugas_id = null) {
+        $this->db->select('pl.*, p.nama as nama_pasien, p.nik, p.jenis_kelamin, p.umur,
+                          CASE 
+                            WHEN EXISTS (SELECT 1 FROM kimia_darah WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
+                            WHEN EXISTS (SELECT 1 FROM hematologi WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
+                            WHEN EXISTS (SELECT 1 FROM urinologi WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
+                            WHEN EXISTS (SELECT 1 FROM serologi_imunologi WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
+                            WHEN EXISTS (SELECT 1 FROM tbc WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
+                            WHEN EXISTS (SELECT 1 FROM ims WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
+                            WHEN EXISTS (SELECT 1 FROM mls WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
+                            ELSE 0
+                          END as has_results');
+        $this->db->from('pemeriksaan_lab pl');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+        $this->db->where('pl.status_pemeriksaan', 'progress');
+        
+        if ($petugas_id) {
+            $this->db->where('pl.petugas_id', $petugas_id);
         }
         
-        $this->db->trans_complete();
-        return $this->db->trans_status();
-        
-    } catch (Exception $e) {
-        $this->db->trans_rollback();
-        log_message('error', 'Error in validate_examination_result_enhanced: ' . $e->getMessage());
-        return false;
+        $this->db->order_by('pl.tanggal_pemeriksaan', 'ASC');
+        return $this->db->get()->result_array();
     }
+
+
+public function get_examination_status_distribution() 
+{
+    $this->db->select('status_pemeriksaan, COUNT(*) as count');
+    $this->db->group_by('status_pemeriksaan');
+    $query = $this->db->get('pemeriksaan_lab');
+    
+    $distribution = array(
+        'pending' => 0,
+        'progress' => 0,
+        'selesai' => 0,
+        'cancelled' => 0
+    );
+    
+    foreach ($query->result_array() as $row) {
+        $distribution[$row['status_pemeriksaan']] = (int)$row['count'];
+    }
+    
+    return $distribution;
 }
 
 /**
  * Get QC dashboard stats
  */
-public function get_qc_dashboard_stats()
+public function get_qc_dashboard_stats() 
 {
     $stats = array();
     
-    try {
-        // Pending validation count
-        $stats['pending_validation'] = $this->count_pending_validation();
-        
-        // Validated today count
-        $stats['validated_today'] = $this->count_validated_today();
-        
-        // Validated this month count  
-        $stats['validated_this_month'] = $this->count_validated_this_month();
-        
-        // Average validation time
-        $stats['avg_validation_time'] = $this->get_avg_validation_time();
-        
-        return $stats;
-        
-    } catch (Exception $e) {
-        log_message('error', 'Error getting QC dashboard stats: ' . $e->getMessage());
-        return array(
-            'pending_validation' => 0,
-            'validated_today' => 0,
-            'validated_this_month' => 0,
-            'avg_validation_time' => 0
-        );
-    }
+    // Pending validation
+    $stats['pending_validation'] = $this->count_pending_validation();
+    
+    // Validated today
+    $stats['validated_today'] = $this->count_validated_today();
+    
+    // Validated this month
+    $stats['validated_this_month'] = $this->count_validated_this_month();
+    
+    // Average validation time (hours)
+    $stats['avg_validation_time'] = $this->get_avg_validation_time();
+    
+    return $stats;
 }
 
-/**
- * Get examinations ready for results with enhanced info
- */
-public function get_examinations_ready_for_results_enhanced($petugas_id = null)
-{
-    $this->db->select('pl.*, p.nama as nama_pasien, p.nik, p.jenis_kelamin, p.umur,
-                      CASE 
-                        WHEN EXISTS (SELECT 1 FROM kimia_darah WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
-                        WHEN EXISTS (SELECT 1 FROM hematologi WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
-                        WHEN EXISTS (SELECT 1 FROM urinologi WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
-                        WHEN EXISTS (SELECT 1 FROM serologi_imunologi WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
-                        WHEN EXISTS (SELECT 1 FROM tbc WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
-                        WHEN EXISTS (SELECT 1 FROM ims WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
-                        WHEN EXISTS (SELECT 1 FROM mls WHERE pemeriksaan_id = pl.pemeriksaan_id) THEN 1
-                        ELSE 0
-                      END as has_results');
-    $this->db->from('pemeriksaan_lab pl');
-    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
-    $this->db->where('pl.status_pemeriksaan', 'progress');
-    
-    if ($petugas_id) {
-        $this->db->where('pl.petugas_id', $petugas_id);
-    }
-    
-    $this->db->order_by('pl.tanggal_pemeriksaan', 'ASC');
-    return $this->db->get()->result_array();
-}
-
-/**
- * Safe method to get petugas info with null check
- */
-public function get_petugas_info_safe($petugas_id)
-{
-    if (!$petugas_id) {
-        return array('nama_petugas' => 'N/A');
-    }
-    
-    $this->db->select('nama_petugas');
-    $this->db->where('petugas_id', $petugas_id);
-    $result = $this->db->get('petugas_lab')->row_array();
-    
-    return $result ?: array('nama_petugas' => 'N/A');
-}
-
-/**
- * Count pending validation with proper checking
- */
-public function count_pending_validation()
+private function count_pending_validation() 
 {
     $this->db->from('pemeriksaan_lab pl');
     $this->db->where('pl.status_pemeriksaan', 'progress');
-    
-    // Check if results exist
     $this->db->where('(
         EXISTS (SELECT 1 FROM kimia_darah WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
         EXISTS (SELECT 1 FROM hematologi WHERE pemeriksaan_id = pl.pemeriksaan_id) OR
@@ -1398,30 +1531,21 @@ public function count_pending_validation()
     return $this->db->count_all_results();
 }
 
-/**
- * Count validated today with proper date check
- */
-public function count_validated_today()
+private function count_validated_today() 
 {
     $this->db->where('status_pemeriksaan', 'selesai');
     $this->db->where('DATE(completed_at)', date('Y-m-d'));
     return $this->db->count_all_results('pemeriksaan_lab');
 }
 
-/**
- * Count validated this month
- */
-public function count_validated_this_month()
+private function count_validated_this_month() 
 {
     $this->db->where('status_pemeriksaan', 'selesai');
     $this->db->where("DATE_FORMAT(completed_at, '%Y-%m') = ", date('Y-m'), FALSE);
     return $this->db->count_all_results('pemeriksaan_lab');
 }
 
-/**
- * Get average validation time in hours
- */
-public function get_avg_validation_time()
+private function get_avg_validation_time() 
 {
     $this->db->select('AVG(TIMESTAMPDIFF(HOUR, started_at, completed_at)) as avg_hours');
     $this->db->where('status_pemeriksaan', 'selesai');
@@ -1432,5 +1556,4 @@ public function get_avg_validation_time()
     $result = $this->db->get('pemeriksaan_lab')->row_array();
     return round($result['avg_hours'] ?: 0, 1);
 }
-
 }
