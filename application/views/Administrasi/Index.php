@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($title) ? $title : 'Dashboard Administrasi'; ?> - Labsys</title>
+    <title><?php echo isset($title) ? $title : 'Dashboard Administrasi'; ?> - LabSy</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -156,119 +156,169 @@
 <!-- Main Content - FULL WIDTH tanpa container -->
 <div class="p-6 space-y-6">
 
-    <!-- KPI Cards - 5 Metrik Utama (Ditambah Total Permintaan) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        
-        <!-- Total Pasien -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover" id="kpi-card-1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Total Pasien</p>
-                    <p id="kpi-total-patients" class="text-3xl font-bold text-gray-900">
-                        <?php if (isset($registration_stats['total_pasien'])): ?>
-                            <?php echo number_format($registration_stats['total_pasien']); ?>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    
+    <?php
+    // Definisi KPI Cards untuk DRY code dan konsistensi
+    $kpiCards = [
+        [
+            'id' => 'kpi-card-1',
+            'title' => 'Total Pasien',
+            'value' => $registration_stats['total_pasien'] ?? null,
+            'subtitle' => '+' . ($registration_stats['registrasi_hari_ini'] ?? 0) . ' hari ini',
+            'color' => 'blue',
+            'icon' => 'users',
+            'value_color' => 'gray-900'
+        ],
+        [
+            'id' => 'kpi-card-2',
+            'title' => 'Total Permintaan',
+            'value' => $examination_stats['total'] ?? null,
+            'subtitle' => ($examination_stats['pending'] ?? 0) . ' pending',
+            'color' => 'orange',
+            'icon' => 'clipboard-list',
+            'value_color' => 'orange-600'
+        ],
+        [
+            'id' => 'kpi-card-3',
+            'title' => 'Pendapatan Bulan Ini',
+            'value' => $monthly_revenue['revenue'] ?? null,
+            'subtitle' => ($monthly_revenue['invoice_count'] ?? 0) . ' transaksi',
+            'color' => 'emerald',
+            'icon' => 'trending-up',
+            'value_color' => 'emerald-600',
+            'format' => 'currency'
+        ],
+        [
+            'id' => 'kpi-card-4',
+            'title' => 'Invoice Pending',
+            'value' => $financial_summary['unpaid_invoices'] ?? null,
+            'subtitle' => 'Rp ' . number_format($financial_summary['pending_revenue'] ?? 0, 0, ',', '.'),
+            'color' => 'red',
+            'icon' => 'alert-circle',
+            'value_color' => 'red-600'
+        ],
+        [
+            'id' => 'kpi-card-5',
+            'title' => 'Registrasi Hari Ini',
+            'value' => $registration_stats['registrasi_hari_ini'] ?? null,
+            'subtitle' => ($registration_stats['registrasi_minggu_ini'] ?? 0) . ' minggu ini',
+            'color' => 'purple',
+            'icon' => 'user-plus',
+            'value_color' => 'purple-600'
+        ]
+    ];
+    
+    foreach ($kpiCards as $card):
+    ?>
+    
+    <!-- <?= $card['title'] ?> -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 card-hover" id="<?= $card['id'] ?>">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+                <!-- Title -->
+                <p class="text-xs font-medium text-gray-600 mb-1.5">
+                    <?= $card['title'] ?>
+                </p>
+                
+                <!-- Value -->
+                <p class="text-2xl font-bold text-<?= $card['value_color'] ?> mb-1">
+                    <?php if ($card['value'] !== null): ?>
+                        <?php if (isset($card['format']) && $card['format'] === 'currency'): ?>
+                            Rp <?= number_format($card['value'], 0, ',', '.') ?>
                         <?php else: ?>
-                            <span class="skeleton rounded w-16 h-9 inline-block"></span>
+                            <?= number_format($card['value']) ?>
                         <?php endif; ?>
-                    </p>
-                    <p class="text-xs text-blue-600 mt-1 font-medium">
-                        +<?php echo $registration_stats['registrasi_hari_ini'] ?? 0; ?> hari ini
-                    </p>
-                </div>
-                <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="users" class="w-7 h-7 text-blue-600"></i>
-                </div>
+                    <?php else: ?>
+                        <span class="skeleton rounded w-14 h-7 inline-block"></span>
+                    <?php endif; ?>
+                </p>
+                
+                <!-- Subtitle -->
+                <p class="text-xs text-gray-500 truncate">
+                    <?= $card['subtitle'] ?>
+                </p>
             </div>
-        </div>
-        
-        <!-- Total Permintaan (BARU) -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover" id="kpi-card-2">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Total Permintaan</p>
-                    <p id="kpi-total-requests" class="text-3xl font-bold text-orange-600">
-                        <?php if (isset($examination_stats['total'])): ?>
-                            <?php echo number_format($examination_stats['total']); ?>
-                        <?php else: ?>
-                            <span class="skeleton rounded w-16 h-9 inline-block"></span>
-                        <?php endif; ?>
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                        <?php echo $examination_stats['pending'] ?? 0; ?> pending
-                    </p>
-                </div>
-                <div class="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="clipboard-list" class="w-7 h-7 text-orange-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Pendapatan Bulan Ini -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover" id="kpi-card-3">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Pendapatan Bulan Ini</p>
-                    <p id="kpi-monthly-revenue" class="text-3xl font-bold text-emerald-600">
-                        <?php if (isset($monthly_revenue['revenue'])): ?>
-                            <?php echo 'Rp ' . number_format($monthly_revenue['revenue'], 0, ',', '.'); ?>
-                        <?php else: ?>
-                            <span class="skeleton rounded w-24 h-9 inline-block"></span>
-                        <?php endif; ?>
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                        <?php echo $monthly_revenue['invoice_count'] ?? 0; ?> transaksi
-                    </p>
-                </div>
-                <div class="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="trending-up" class="w-7 h-7 text-emerald-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Invoice Pending -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover" id="kpi-card-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Invoice Pending</p>
-                    <p id="kpi-pending-invoices" class="text-3xl font-bold text-red-600">
-                        <?php if (isset($financial_summary['unpaid_invoices'])): ?>
-                            <?php echo number_format($financial_summary['unpaid_invoices']); ?>
-                        <?php else: ?>
-                            <span class="skeleton rounded w-12 h-9 inline-block"></span>
-                        <?php endif; ?>
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Rp <?php echo number_format($financial_summary['pending_revenue'] ?? 0, 0, ',', '.'); ?>
-                    </p>
-                </div>
-                <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="alert-circle" class="w-7 h-7 text-red-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Registrasi Hari Ini -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover" id="kpi-card-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Registrasi Hari Ini</p>
-                    <p id="kpi-today-registrations" class="text-3xl font-bold text-purple-600">
-                        <?php if (isset($registration_stats['registrasi_hari_ini'])): ?>
-                            <?php echo number_format($registration_stats['registrasi_hari_ini']); ?>
-                        <?php else: ?>
-                            <span class="skeleton rounded w-10 h-9 inline-block"></span>
-                        <?php endif; ?>
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                        <?php echo $registration_stats['registrasi_minggu_ini'] ?? 0; ?> minggu ini
-                    </p>
-                </div>
-                <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="user-plus" class="w-7 h-7 text-purple-600"></i>
-                </div>
+            
+            <!-- Icon -->
+            <div class="w-12 h-12 bg-<?= $card['color'] ?>-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-3">
+                <i data-lucide="<?= $card['icon'] ?>" class="w-6 h-6 text-<?= $card['color'] ?>-600"></i>
             </div>
         </div>
     </div>
+    
+    <?php endforeach; ?>
+</div>
+
+<!-- Alternative: Dengan Trend Indicator & Interaktif -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6" style="display: none;">
+    
+    <?php foreach ($kpiCards as $card): ?>
+    
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 
+                hover:shadow-md hover:scale-[1.02] transform transition-all duration-200 
+                cursor-pointer group" 
+         id="<?= $card['id'] ?>-interactive"
+         data-card="<?= $card['id'] ?>"
+         onclick="handleKpiCardClick('<?= $card['id'] ?>')">
+        
+        <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+                <!-- Title with hover effect -->
+                <p class="text-xs font-medium text-gray-600 group-hover:text-gray-800 transition-colors mb-1.5">
+                    <?= $card['title'] ?>
+                </p>
+                
+                <!-- Value with animation -->
+                <p class="text-2xl font-bold text-<?= $card['value_color'] ?> mb-1 group-hover:scale-105 transition-transform origin-left">
+                    <?php if ($card['value'] !== null): ?>
+                        <?php if (isset($card['format']) && $card['format'] === 'currency'): ?>
+                            Rp <?= number_format($card['value'], 0, ',', '.') ?>
+                        <?php else: ?>
+                            <?= number_format($card['value']) ?>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="skeleton rounded w-14 h-7 inline-block"></span>
+                    <?php endif; ?>
+                </p>
+                
+                <!-- Subtitle -->
+                <p class="text-xs text-gray-500 truncate">
+                    <?= $card['subtitle'] ?>
+                </p>
+                
+                <!-- Trend Indicator (shown on hover) -->
+                <div class="flex items-center space-x-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <i data-lucide="arrow-up-right" class="w-3 h-3 text-green-600"></i>
+                    <span class="text-xs text-green-600 font-medium">Lihat detail</span>
+                </div>
+            </div>
+            
+            <!-- Icon with hover effect -->
+            <div class="w-12 h-12 bg-<?= $card['color'] ?>-100 rounded-lg 
+                        flex items-center justify-center flex-shrink-0 ml-3
+                        group-hover:bg-<?= $card['color'] ?>-200 transition-colors">
+                <i data-lucide="<?= $card['icon'] ?>" class="w-6 h-6 text-<?= $card['color'] ?>-600"></i>
+            </div>
+        </div>
+        
+        <!-- Progress bar (optional) -->
+        <?php if ($card['id'] === 'kpi-card-3'): // Contoh untuk pendapatan ?>
+        <div class="mt-3 pt-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs mb-1">
+                <span class="text-gray-500">Target: Rp 50jt</span>
+                <span class="text-gray-700 font-medium">75%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-1">
+                <div class="bg-<?= $card['color'] ?>-600 h-1 rounded-full transition-all duration-500" style="width: 75%"></div>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+    
+    <?php endforeach; ?>
+</div>
+
 
     <!-- Charts Row - FULL WIDTH -->
     <div class="grid grid-cols-1 lg:grid-cols-7 gap-6">

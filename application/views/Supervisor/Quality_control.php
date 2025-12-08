@@ -1,4 +1,6 @@
 <!-- Header Section -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
 <div class="w-full bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 border-b border-blue-500">
     <div class="p-6">
         <div class="flex items-center justify-between">
@@ -25,7 +27,7 @@
 <!-- Summary Cards -->
 <div class="w-full px-6 py-6 bg-gray-50 border-b border-gray-200">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                     <i data-lucide="clock" class="w-5 h-5 text-orange-600"></i>
@@ -39,7 +41,7 @@
             </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
@@ -53,7 +55,7 @@
             </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                     <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-600"></i>
@@ -67,7 +69,7 @@
             </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                     <i data-lucide="timer" class="w-5 h-5 text-purple-600"></i>
@@ -97,7 +99,7 @@
                     </span>
                 </h2>
                 <div class="flex items-center space-x-2">
-                    <button id="select-all-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    <button id="select-all-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
                         <i data-lucide="check-square" class="w-4 h-4 inline mr-1"></i>Pilih Semua
                     </button>
                     <button id="validate-selected" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
@@ -118,7 +120,7 @@
                                 <div class="flex items-start space-x-4 flex-1">
                                     <!-- Checkbox -->
                                     <div class="flex items-center pt-1">
-                                        <input type="checkbox" class="row-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-exam-id="<?= $exam['pemeriksaan_id'] ?>">
+                                        <input type="checkbox" class="row-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" data-exam-id="<?= $exam['pemeriksaan_id'] ?>">
                                     </div>
                                     
                                     <!-- Status Icon -->
@@ -311,12 +313,17 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Action Button -->
-                                <div class="ml-4">
+                                <!-- Action Buttons -->
+                                <div class="flex flex-col space-y-2 ml-4">
                                     <button type="button" onclick="viewResult(<?= $exam['pemeriksaan_id'] ?>)" 
                                             class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 transition-colors duration-200">
                                         <i data-lucide="file-text" class="w-3 h-3 mr-1"></i>
                                         <span>Lihat Hasil</span>
+                                    </button>
+                                    <button type="button" onclick="viewInvoice(<?= $exam['pemeriksaan_id'] ?>)" 
+                                            class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 transition-colors duration-200">
+                                        <i data-lucide="receipt" class="w-3 h-3 mr-1"></i>
+                                        <span>Lihat Invoice</span>
                                     </button>
                                 </div>
                             </div>
@@ -350,7 +357,7 @@
                         <p class="text-sm text-blue-100">Review dan validasi hasil laboratorium</p>
                     </div>
                 </div>
-                <button onclick="closeModal()" class="text-white hover:text-gray-200 transition-colors">
+                <button onclick="closeModal('result-modal')" class="text-white hover:text-gray-200 transition-colors">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
@@ -359,12 +366,46 @@
             <!-- Content will be loaded here -->
         </div>
         <div class="p-6 border-t border-gray-200 flex justify-end space-x-3 bg-gray-50">
-            <button onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+            <button onclick="closeModal('result-modal')" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                 Tutup
             </button>
             <button id="modal-validate-btn" onclick="validateFromModal()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors duration-200">
                 <i data-lucide="shield-check" class="w-4 h-4"></i>
                 <span>Validasi Hasil</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Modal -->
+<div id="invoice-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden fade-in">
+        <div class="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 p-6 border-b border-purple-500">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+                        <i data-lucide="receipt" class="w-6 h-6 text-purple-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Detail Invoice</h3>
+                        <p class="text-sm text-purple-100">Informasi pembayaran dan tagihan</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('invoice-modal')" class="text-white hover:text-gray-200 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]" id="invoice-modal-content">
+            <!-- Content will be loaded here -->
+        </div>
+        <div class="p-6 border-t border-gray-200 flex justify-between bg-gray-50">
+            <button onclick="printInvoice()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+                <span>Cetak</span>
+            </button>
+            <button onclick="closeModal('invoice-modal')" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors duration-200">
+                Tutup
             </button>
         </div>
     </div>
@@ -376,9 +417,23 @@ if (typeof lucide !== 'undefined') {
     lucide.createIcons();
 }
 
+// Global variables
+let currentExamId = null;
+let currentInvoiceId = null;
+
 // Checkbox functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Select all button
+    initializeCheckboxes();
+    loadDashboardStats();
+    
+    // Setup validate selected button
+    const validateSelectedBtn = document.getElementById('validate-selected');
+    if (validateSelectedBtn) {
+        validateSelectedBtn.addEventListener('click', handleBatchValidation);
+    }
+});
+
+function initializeCheckboxes() {
     const selectAllBtn = document.getElementById('select-all-btn');
     if (selectAllBtn) {
         selectAllBtn.onclick = function() {
@@ -404,84 +459,109 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.row-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', updateValidateButton);
     });
-});
+}
 
 function updateValidateButton() {
     const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
     const validateBtn = document.getElementById('validate-selected');
     
-    if (selectedCheckboxes.length > 0) {
-        validateBtn.disabled = false;
-        validateBtn.querySelector('span').textContent = `Validasi Terpilih (${selectedCheckboxes.length})`;
-    } else {
-        validateBtn.disabled = true;
-        validateBtn.querySelector('span').textContent = 'Validasi Terpilih';
+    if (validateBtn) {
+        if (selectedCheckboxes.length > 0) {
+            validateBtn.disabled = false;
+            validateBtn.querySelector('span').textContent = `Validasi Terpilih (${selectedCheckboxes.length})`;
+        } else {
+            validateBtn.disabled = true;
+            validateBtn.querySelector('span').textContent = 'Validasi Terpilih';
+        }
     }
 }
 
-// Validate selected results
-document.getElementById('validate-selected').addEventListener('click', function() {
+// Batch validation handler
+function handleBatchValidation() {
     const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
     const examIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.examId);
     
     if (examIds.length === 0) return;
     
     if (confirm(`Yakin ingin memvalidasi ${examIds.length} hasil pemeriksaan?`)) {
-        // Show loading
-        this.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i><span>Memvalidasi...</span>';
-        this.disabled = true;
+        const btn = document.getElementById('validate-selected');
+        const originalHTML = btn.innerHTML;
         
-        // Send AJAX request
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i><span>Memvalidasi...</span>';
+        btn.disabled = true;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
         fetch('<?= base_url("laboratorium/batch_validate_results") ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({
-                examination_ids: examIds
-            })
+            body: JSON.stringify({ examination_ids: examIds })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert(`${data.success_count} hasil berhasil divalidasi!`);
-                location.reload();
+                showNotification('success', data.message);
+                
+                // Remove validated items
+                examIds.forEach(examId => {
+                    const item = document.querySelector(`[data-exam-id="${examId}"]`)?.closest('.bg-white');
+                    if (item) {
+                        item.style.opacity = '0.5';
+                        item.style.pointerEvents = 'none';
+                        setTimeout(() => item.remove(), 500);
+                    }
+                });
+                
+                // Update counts
+                setTimeout(() => {
+                    updatePendingCount();
+                    loadDashboardStats();
+                }, 600);
             } else {
-                alert('Error: ' + (data.message || 'Gagal memvalidasi hasil'));
+                showNotification('error', data.message || 'Gagal memvalidasi hasil');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan saat memvalidasi hasil');
+            showNotification('error', 'Terjadi kesalahan saat memvalidasi');
         })
         .finally(() => {
-            // Reset button
-            this.innerHTML = '<i data-lucide="shield-check" class="w-4 h-4 mr-2"></i><span>Validasi Terpilih</span>';
-            this.disabled = true;
+            btn.innerHTML = originalHTML;
+            btn.disabled = true;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            updateValidateButton();
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
         });
     }
-});
+}
 
+// View result detail
 function viewResult(examId) {
-    // Load result details
+    currentExamId = examId;
+    
     fetch('<?= base_url("laboratorium/get_result_details") ?>/' + examId)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             displayResultModal(data.examination, data.results);
         } else {
-            alert('Error: ' + (data.message || 'Gagal memuat detail hasil'));
+            showNotification('error', data.message || 'Gagal memuat detail hasil');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Terjadi kesalahan saat memuat detail hasil');
+        showNotification('error', 'Terjadi kesalahan saat memuat detail hasil');
     });
 }
 
+// Display result modal
 function displayResultModal(examination, results) {
     const content = `
         <div class="space-y-6">
@@ -508,7 +588,7 @@ function displayResultModal(examination, results) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     ${Object.entries(results || {}).map(([key, value]) => `
                         <div class="flex justify-between py-2 border-b border-gray-100">
-                            <span class="text-gray-600 font-medium text-sm">${key}:</span>
+                            <span class="text-gray-600 font-medium text-sm">${formatLabel(key)}:</span>
                             <span class="font-semibold text-gray-900 text-sm">${value || '-'}</span>
                         </div>
                     `).join('')}
@@ -537,61 +617,257 @@ function displayResultModal(examination, results) {
     }
 }
 
-function validateResult(examId) {
-    if (confirm('Yakin ingin memvalidasi hasil pemeriksaan ini?')) {
-        // Send AJAX request
-        fetch('<?= base_url("laboratorium/validate_result") ?>/' + examId, {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Hasil berhasil divalidasi!');
-                location.reload();
-            } else {
-                alert('Error: ' + (data.message || 'Gagal memvalidasi hasil'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Terjadi kesalahan saat memvalidasi hasil');
-        });
-    }
+// View invoice
+function viewInvoice(examId) {
+    currentExamId = examId;
+    
+    fetch('<?= base_url("laboratorium/get_invoice_details") ?>/' + examId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayInvoiceModal(data.invoice, data.examination);
+        } else {
+            showNotification('error', data.message || 'Gagal memuat invoice');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('error', 'Terjadi kesalahan saat memuat invoice');
+    });
 }
 
+// Display invoice modal
+function displayInvoiceModal(invoice, examination) {
+    currentInvoiceId = invoice.invoice_id;
+    
+    const statusClass = {
+        'pending': 'bg-yellow-100 text-yellow-800',
+        'paid': 'bg-green-100 text-green-800',
+        'cancelled': 'bg-red-100 text-red-800'
+    }[invoice.status_pembayaran.toLowerCase()] || 'bg-gray-100 text-gray-800';
+    
+    const content = `
+        <div class="space-y-6">
+            <!-- Invoice Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg p-6 text-white">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1">INVOICE</h3>
+                        <p class="text-purple-100 text-lg font-mono">${invoice.nomor_invoice}</p>
+                        <p class="text-purple-200 text-sm mt-2">Tanggal: ${formatDate(invoice.tanggal_invoice)}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-purple-100 mb-1">Total Tagihan</p>
+                        <p class="text-3xl font-bold">Rp ${formatCurrency(invoice.total_biaya)}</p>
+                        <span class="inline-block mt-2 px-3 py-1 ${statusClass} rounded-full text-xs font-medium">
+                            ${invoice.status_pembayaran.toUpperCase()}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Patient & Examination Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i data-lucide="user" class="w-4 h-4 mr-2 text-blue-600"></i>
+                        Informasi Pasien
+                    </h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Nama:</span>
+                            <span class="font-medium text-gray-900">${examination.nama_pasien}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">NIK:</span>
+                            <span class="font-medium text-gray-900">${examination.nik}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">No. Pemeriksaan:</span>
+                            <span class="font-medium text-gray-900 font-mono">${examination.nomor_pemeriksaan}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i data-lucide="file-text" class="w-4 h-4 mr-2 text-purple-600"></i>
+                        Detail Invoice
+                    </h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Jenis Pembayaran:</span>
+                            <span class="font-medium text-gray-900">${invoice.jenis_pembayaran}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tanggal Pemeriksaan:</span>
+                            <span class="font-medium text-gray-900">${formatDate(examination.tanggal_pemeriksaan)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tanggal Invoice:</span>
+                            <span class="font-medium text-gray-900">${formatDate(invoice.tanggal_invoice)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Invoice Items -->
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                    <h4 class="font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="list" class="w-4 h-4 mr-2 text-purple-600"></i>
+                        Rincian Biaya
+                    </h4>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                            <div>
+                                <p class="font-medium text-gray-900">${examination.jenis_pemeriksaan}</p>
+                                <p class="text-xs text-gray-500">Pemeriksaan Laboratorium</p>
+                            </div>
+                            <span class="font-semibold text-gray-900">Rp ${formatCurrency(invoice.total_biaya)}</span>
+                        </div>
+                        
+                        <!-- Total -->
+                        <div class="flex justify-between items-center pt-3 border-t-2 border-gray-300">
+                            <span class="text-lg font-bold text-gray-900">Total Tagihan</span>
+                            <span class="text-2xl font-bold text-purple-600">Rp ${formatCurrency(invoice.total_biaya)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notes -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-start space-x-2">
+                    <i data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5"></i>
+                    <div>
+                        <h4 class="font-semibold text-blue-900 mb-1">Catatan Pembayaran</h4>
+                        <p class="text-sm text-blue-700">
+                            Mohon lakukan pembayaran sesuai dengan nominal yang tertera. Untuk informasi lebih lanjut 
+                            mengenai metode pembayaran, silakan hubungi bagian kasir atau administrasi.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('invoice-modal-content').innerHTML = content;
+    document.getElementById('invoice-modal').classList.remove('hidden');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+// Ganti fungsi validateResult dengan yang ini
+function validateResult(examId) {
+    if (!confirm('Yakin ingin memvalidasi hasil pemeriksaan ini?')) {
+        return;
+    }
+    
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 mr-1 animate-spin"></i>Memvalidasi...';
+    btn.disabled = true;
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    // Tambahkan timeout untuk request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 detik timeout
+    
+    fetch('<?= base_url("Supervisor/validate_result") ?>/' + examId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        signal: controller.signal
+    })
+    .then(response => {
+        clearTimeout(timeoutId);
+        
+        // Cek status response
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Cek content type
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showNotification('success', data.message || 'Hasil berhasil divalidasi!');
+            
+            // Remove from pending list
+            const item = document.querySelector(`[data-exam-id="${examId}"]`)?.closest('.bg-white');
+            if (item) {
+                item.style.opacity = '0.5';
+                item.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    item.remove();
+                    updatePendingCount();
+                    loadDashboardStats(); // Refresh stats
+                }, 1000);
+            }
+        } else {
+            showNotification('error', data.message || 'Gagal memvalidasi hasil');
+        }
+    })
+    .catch(error => {
+        clearTimeout(timeoutId);
+        console.error('Validation Error:', error);
+        
+        if (error.name === 'AbortError') {
+            showNotification('error', 'Request timeout - silakan coba lagi');
+        } else {
+            showNotification('error', 'Terjadi kesalahan jaringan: ' + error.message);
+        }
+    })
+    .finally(() => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+}
+
+// Validate from modal
 function validateFromModal() {
     const examId = document.getElementById('modal-validate-btn').dataset.examId;
-    validateResult(examId);
-}
-
-function closeModal() {
-    document.getElementById('result-modal').classList.add('hidden');
-}
-
-// Close modal on ESC key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeModal();
+    if (examId) {
+        closeModal('result-modal');
+        validateResult(examId);
     }
-});
-
-// Close modal on click outside
-document.getElementById('result-modal')?.addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeModal();
-    }
-});
+}
 
 // Load dashboard stats
 function loadDashboardStats() {
     fetch('<?= base_url("laboratorium/get_qc_dashboard_data") ?>')
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            document.getElementById('pending-count').textContent = data.data.pending_validation;
-            document.getElementById('validated-today').textContent = data.data.validated_today;
-            document.getElementById('total-month').textContent = data.data.validated_this_month;
-            document.getElementById('avg-time').textContent = data.data.avg_validation_time + 'h';
+            const stats = data.data;
+            document.getElementById('pending-count').textContent = stats.pending_validation || 0;
+            document.getElementById('validated-today').textContent = stats.validated_today || 0;
+            document.getElementById('total-month').textContent = stats.validated_this_month || 0;
+            document.getElementById('avg-time').textContent = (stats.avg_validation_time || 0) + 'h';
         }
     })
     .catch(error => {
@@ -599,28 +875,211 @@ function loadDashboardStats() {
     });
 }
 
-// Load stats on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadDashboardStats();
+// Update pending count
+function updatePendingCount() {
+    const pendingItems = document.querySelectorAll('#pending-validation-list > .bg-white:not([style*="opacity"])');
+    const pendingCount = pendingItems.length;
+    
+    document.getElementById('pending-count').textContent = pendingCount;
+    document.getElementById('pending-badge').textContent = pendingCount + ' Item';
+    
+    // Show empty state if no items
+    if (pendingCount === 0) {
+        const emptyState = `
+            <div class="text-center py-12">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="check-circle" class="w-12 h-12 text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Tidak Ada Hasil Menunggu</h3>
+                <p class="text-gray-500">Semua hasil pemeriksaan sudah divalidasi.</p>
+            </div>
+        `;
+        document.getElementById('pending-validation-list').innerHTML = emptyState;
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
+// Close modal
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    currentExamId = null;
+    currentInvoiceId = null;
+}
+
+// Print invoice
+function printInvoice() {
+    const content = document.getElementById('invoice-modal-content').innerHTML;
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Invoice</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                .gradient-header { background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%); 
+                                  color: white; padding: 30px; border-radius: 8px; margin-bottom: 20px; }
+                .info-box { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 4px; }
+                .total-row { border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; 
+                           font-size: 18px; font-weight: bold; }
+                @media print {
+                    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                }
+            </style>
+        </head>
+        <body>${content}</body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
+}
+
+// Show notification
+function showNotification(type, message) {
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notif => notif.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `custom-notification fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border transform transition-all duration-300 ${
+        type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 
+        'bg-red-50 border-red-200 text-red-800'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" 
+               class="w-5 h-5 ${type === 'success' ? 'text-green-600' : 'text-red-600'}"></i>
+            <div>
+                <p class="font-medium">${type === 'success' ? 'Berhasil' : 'Error'}</p>
+                <p class="text-sm">${message}</p>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 5000);
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// Utility functions
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID').format(amount);
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+    });
+}
+
+function formatLabel(key) {
+    return key.split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+// Close modals on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal('result-modal');
+        closeModal('invoice-modal');
+    }
+});
+
+// Close modals on click outside
+['result-modal', 'invoice-modal'].forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(modalId);
+            }
+        });
+    }
 });
 </script>
 
 <style>
-/* Fade in animation */
+/* Animations */
 .fade-in {
     animation: fadeIn 0.3s ease-in;
 }
+
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
 }
 
-/* Loading animation */
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
 .animate-spin {
     animation: spin 1s linear infinite;
+}
+
+/* Custom scrollbar */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Print styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #invoice-modal-content, #invoice-modal-content * {
+        visibility: visible;
+    }
+    #invoice-modal-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
 }
 </style>

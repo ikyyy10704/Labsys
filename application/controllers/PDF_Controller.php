@@ -12,8 +12,56 @@ class PDF_Controller extends CI_Controller {
             redirect('auth/login');
         }
         
-        $this->load->model(['PDF_model']);
+        $this->load->model(['PDF_model', 'Invoice_model']);
         $this->load->helper(['form', 'url', 'date']);
+    }
+ 
+    public function print_invoice($invoice_id)
+    {
+        try {
+            if (empty($invoice_id) || !is_numeric($invoice_id)) {
+                show_404();
+                return;
+            }
+            
+            $invoice_id = (int)$invoice_id;
+            
+            // Ambil detail invoice dengan breakdown otomatis
+            $invoice = $this->Invoice_model->get_invoice_with_details($invoice_id);
+            
+            if (!$invoice) {
+                show_404();
+                return;
+            }
+            
+            // Ambil logo dan lab info
+            $logo_info = $this->PDF_model->get_logo_info();
+            $lab_info = $this->PDF_model->get_lab_info();
+            
+            $data = array(
+                'title' => 'Invoice - ' . $invoice['nomor_invoice'],
+                'invoice' => $invoice,
+                'logo_info' => $logo_info,
+                'lab_info' => $lab_info,
+                'print_date' => date('d F Y, H:i:s'),
+                'current_user' => $this->session->userdata('username')
+            );
+            
+            // Log activity
+            $this->PDF_model->log_activity(
+                $this->session->userdata('user_id'),
+                'Invoice dicetak: ' . $invoice['nomor_invoice'],
+                'invoice',
+                $invoice_id
+            );
+            
+            // Load view untuk print
+            $this->load->view('admin/print_invoice_detailed', $data);
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error printing invoice: ' . $e->getMessage());
+            show_error('Terjadi kesalahan saat memuat invoice: ' . $e->getMessage(), 500);
+        }
     }
     public function print_examination_result($examination_id)
     {
@@ -74,49 +122,5 @@ $data['completeness'] = $completeness;
         }
     }
 
-    public function print_invoice($invoice_id)
-    {
-        try {
-            if (empty($invoice_id) || !is_numeric($invoice_id)) {
-                show_404();
-                return;
-            }
-            
-            $invoice_id = (int)$invoice_id;
-            
-            $invoice = $this->PDF_model->get_invoice_detail($invoice_id);
-            
-            if (!$invoice) {
-                show_404();
-                return;
-            }
-            
-            $examination = $this->PDF_model->get_examination_by_invoice($invoice_id);
-            $logo_info = $this->PDF_model->get_logo_info();
-            $lab_info = $this->PDF_model->get_lab_info();
-            
-            $data = array(
-                'title' => 'Invoice - ' . $invoice['nomor_invoice'],
-                'invoice' => $invoice,
-                'examination' => $examination,
-                'logo_info' => $logo_info,
-                'lab_info' => $lab_info,
-                'print_date' => date('d F Y, H:i:s'),
-                'current_user' => $this->session->userdata('username')
-            );
-            
-            $this->PDF_model->log_activity(
-                $this->session->userdata('user_id'),
-                'Invoice dicetak: ' . $invoice['nomor_invoice'],
-                'invoice',
-                $invoice_id
-            );
-            
-            $this->load->view('admin/print_invoice', $data);
-            
-        } catch (Exception $e) {
-            log_message('error', 'Error printing invoice: ' . $e->getMessage());
-            show_error('Terjadi kesalahan saat memuat invoice: ' . $e->getMessage(), 500);
-        }
-    }
+
 }

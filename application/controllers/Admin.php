@@ -81,7 +81,7 @@ class Admin extends CI_Controller {
         
         $this->form_validation->set_rules('username', 'Username', 'required|is_unique[users.username]|alpha_dash|min_length[3]');
         $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
-        $this->form_validation->set_rules('role', 'Role', 'required|in_list[admin,administrasi,petugas_lab]');
+        $this->form_validation->set_rules('role', 'Role', 'required|in_list[admin,administrasi,petugas_lab,supervisor]');
         $this->form_validation->set_rules('nama_lengkap', 'Nama Lengkap', 'required|min_length[2]');
         
         if ($this->form_validation->run() === FALSE) {
@@ -118,6 +118,12 @@ class Admin extends CI_Controller {
                 $role_data['jenis_keahlian'] = $this->input->post('jenis_keahlian');
                 $role_data['telepon'] = $this->input->post('telepon_lab');
                 $role_data['alamat'] = $this->input->post('alamat');
+                break;
+            case 'supervisor':
+                $role_data['nama_supervisor'] = $this->input->post('nama_lengkap');
+                $role_data['jenis_keahlian'] = $this->input->post('jenis_keahlian_supervisor');
+                $role_data['telepon'] = $this->input->post('telepon_supervisor');
+                $role_data['alamat'] = $this->input->post('alamat_supervisor');
                 break;
         }
         
@@ -206,6 +212,12 @@ class Admin extends CI_Controller {
                 $role_data['jenis_keahlian'] = $this->input->post('jenis_keahlian');
                 $role_data['telepon'] = $this->input->post('telepon');
                 $role_data['alamat'] = $this->input->post('alamat');
+                break;
+            case 'supervisor':
+                $role_data['nama_supervisor'] = $this->input->post('nama_lengkap');
+                $role_data['jenis_keahlian'] = $this->input->post('jenis_keahlian_supervisor');
+                $role_data['telepon'] = $this->input->post('telepon_supervisor');
+                $role_data['alamat'] = $this->input->post('alamat_supervisor');
                 break;
         }
         

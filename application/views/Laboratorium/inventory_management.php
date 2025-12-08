@@ -680,8 +680,6 @@
         </div>
     </div>
 </div>
-
-<!-- Calibration Modal (Improved) -->
 <div id="calibration-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 p-6 border-b border-blue-500">
@@ -708,16 +706,16 @@
                 
                 <!-- Mode Selector -->
                 <div class="mode-selector mb-4 p-4 bg-gray-50 rounded-lg">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Mode Kalibrasi</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Mode Kalibrasi</label>
                     <div class="flex space-x-4">
                         <button type="button" onclick="toggleCalibrationMode('schedule')" 
-                                class="mode-btn flex-1 px-4 py-2 border-2 rounded-lg transition-colors border-blue-600 bg-blue-50 text-blue-700"
+                                class="mode-btn flex-1 px-4 py-3 border-2 rounded-lg transition-colors border-blue-600 bg-blue-50 text-blue-700 font-medium"
                                 data-mode="schedule">
                             <i data-lucide="calendar" class="w-4 h-4 inline mr-2"></i>
                             Jadwalkan
                         </button>
                         <button type="button" onclick="toggleCalibrationMode('complete')" 
-                                class="mode-btn flex-1 px-4 py-2 border-2 rounded-lg transition-colors border-gray-300 text-gray-700"
+                                class="mode-btn flex-1 px-4 py-3 border-2 rounded-lg transition-colors border-gray-300 text-gray-700 font-medium"
                                 data-mode="complete">
                             <i data-lucide="check-circle" class="w-4 h-4 inline mr-2"></i>
                             Selesaikan
@@ -732,15 +730,26 @@
                             <label for="calibration-date" class="block text-sm font-medium text-gray-700 mb-2">
                                 Jadwal Kalibrasi <span class="text-red-500">*</span>
                             </label>
-                            <input type="date" id="calibration-date" name="tanggal_kalibrasi" 
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   required>
+                            <div class="relative">
+                                <input type="date" 
+                                       id="calibration-date" 
+                                       name="tanggal_kalibrasi" 
+                                       class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       required>
+                                <i data-lucide="calendar" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i data-lucide="info" class="w-3 h-3 inline"></i>
+                                Tanggal kapan kalibrasi akan dilakukan
+                            </p>
                         </div>
                         <div>
                             <label for="calibration-notes" class="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
-                            <textarea id="calibration-notes" name="catatan" rows="3"
+                            <textarea id="calibration-notes" 
+                                      name="catatan" 
+                                      rows="3"
                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                                      placeholder="Catatan tambahan untuk kalibrasi"></textarea>
+                                      placeholder="Catatan tambahan untuk penjadwalan kalibrasi..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -748,54 +757,95 @@
                 <!-- Complete Fields -->
                 <div id="complete-fields" style="display: none;">
                     <div class="space-y-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-start space-x-3">
+                                <i data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5"></i>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-blue-900">Informasi Penjadwalan Otomatis</p>
+                                    <p class="text-xs text-blue-700 mt-1">Jika "Jadwal Kalibrasi Berikutnya" tidak diisi, sistem akan otomatis menjadwalkan 1 tahun dari tanggal kalibrasi.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div>
                             <label for="complete-date" class="block text-sm font-medium text-gray-700 mb-2">
                                 Tanggal Kalibrasi <span class="text-red-500">*</span>
                             </label>
-                            <input type="date" id="complete-date" name="tanggal_kalibrasi" 
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <div class="relative">
+                                <input type="date" id="complete-date" name="tanggal_kalibrasi" 
+                                       class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <i data-lucide="calendar" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">Tanggal kapan kalibrasi dilakukan</p>
                         </div>
+                        
                         <div>
                             <label for="calibration-result" class="block text-sm font-medium text-gray-700 mb-2">
                                 Hasil Kalibrasi <span class="text-red-500">*</span>
                             </label>
-                            <select id="calibration-result" name="hasil_kalibrasi" 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="Passed">Passed - Lulus</option>
-                                <option value="Failed">Failed - Gagal</option>
-                                <option value="Conditional">Conditional - Bersyarat</option>
-                            </select>
+                            <div class="relative">
+                                <select id="calibration-result" name="hasil_kalibrasi" 
+                                        class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="Passed">✓ Passed - Lulus</option>
+                                    <option value="Failed">✗ Failed - Gagal</option>
+                                    <option value="Conditional">⚠ Conditional - Bersyarat</option>
+                                </select>
+                                <i data-lucide="clipboard-check" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                            </div>
                         </div>
+                        
                         <div>
                             <label for="calibration-technician" class="block text-sm font-medium text-gray-700 mb-2">Teknisi</label>
-                            <input type="text" id="calibration-technician" name="teknisi" 
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="Nama teknisi">
+                            <div class="relative">
+                                <input type="text" id="calibration-technician" name="teknisi" 
+                                       class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Nama teknisi yang melakukan kalibrasi">
+                                <i data-lucide="user" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                            </div>
                         </div>
+                        
+                        <!-- NEW FIELD: Next Calibration Date (Optional) -->
+                        <div class="border-t border-gray-200 pt-4">
+                            <label for="next-calibration-date" class="block text-sm font-medium text-gray-700 mb-2">
+                                Jadwal Kalibrasi Berikutnya <span class="text-gray-400">(Opsional)</span>
+                            </label>
+                            <div class="relative">
+                                <input type="date" id="next-calibration-date" name="next_calibration_date" 
+                                       class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Kosongkan untuk jadwal otomatis 1 tahun">
+                                <i data-lucide="calendar-clock" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i data-lucide="info" class="w-3 h-3 inline"></i>
+                                Kosongkan jika ingin sistem otomatis menjadwalkan 1 tahun dari tanggal kalibrasi
+                            </p>
+                        </div>
+                        
                         <div>
                             <label for="complete-notes" class="block text-sm font-medium text-gray-700 mb-2">Catatan Hasil</label>
                             <textarea id="complete-notes" name="catatan" rows="3"
                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                                      placeholder="Detail hasil kalibrasi..."></textarea>
+                                      placeholder="Detail hasil kalibrasi dan temuan..."></textarea>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-100">
                     <button type="button" onclick="closeCalibrationModal()"
-                            class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                        Batal
+                            class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center space-x-2">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                        <span>Batal</span>
                     </button>
                     <button type="submit" id="calibration-submit-btn"
-                            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-colors duration-200">
-                        Jadwalkan
+                            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>Jadwalkan</span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
 <!-- Calibration History Modal -->
 <div id="calibration-history-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
@@ -989,8 +1039,7 @@
         </div>
     </div>
 </div>
-
-<script src="<?= base_url('assets/js/inventory_management.js') ?>"></script>
+va
 
 <script>
 // ==========================================
@@ -1211,25 +1260,35 @@ function formatDate(dateString) {
     return date.toLocaleDateString('id-ID');
 }
 
-// ==========================================
-// DATA LOADING FUNCTIONS
-// ==========================================
 async function loadInventoryData() {
     try {
+        showLoadingState();
+        
         const response = await fetch('<?= base_url("inventory_lab/get_inventory_data") ?>');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
+        console.log('Inventory response:', data); // Debug
+        
         if (data.success) {
-            allInventory = data.inventory;
+            allInventory = data.inventory || [];
             renderInventoryTable(allInventory);
-            updateInventoryCount(allInventory.length);
+            updateInventoryCount(data.count || allInventory.length);
+            
+            if (allInventory.length === 0) {
+                showToast('info', 'Tidak ada data inventory ditemukan');
+            }
         } else {
-            showToast('error', 'Gagal memuat data inventory');
+            showToast('error', data.message || 'Gagal memuat data inventory');
             renderEmptyState();
         }
     } catch (error) {
         console.error('Error loading inventory:', error);
-        showToast('error', 'Terjadi kesalahan saat memuat data');
+        showToast('error', 'Terjadi kesalahan saat memuat data: ' + error.message);
         renderEmptyState();
     } finally {
         ensureFullwidthLayout();
@@ -1317,9 +1376,6 @@ function renderInventoryTable(inventory) {
             <tr class="hover:bg-gray-50 transition-colors duration-200 fullwidth-container">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-                            ${avatar}
-                        </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900">${itemName}</div>
                             <div class="text-sm text-gray-500">${kodeUnik}</div>
@@ -1397,22 +1453,21 @@ function renderEmptyState() {
 
 function showLoadingState() {
     const tbody = document.getElementById('inventory-tbody');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="7" class="px-6 py-12 text-center">
-                <div class="flex items-center justify-center space-x-2">
-                    <i data-lucide="loader-2" class="w-5 h-5 text-blue-600 loading"></i>
-                    <span class="text-gray-500">Memfilter data...</span>
-                </div>
-            </td>
-        </tr>
-    `;
-    lucide.createIcons();
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr class="loading-state">
+                <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="flex items-center justify-center space-x-2">
+                        <i data-lucide="loader-2" class="w-5 h-5 text-blue-600 loading"></i>
+                        <span class="text-gray-500">Memuat data inventory...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        lucide.createIcons();
+    }
 }
 
-// ==========================================
-// FILTER & SEARCH FUNCTIONS
-// ==========================================
 function handleSearchKeypress(event) {
     if (event.key === 'Enter') {
         applyFilters();
@@ -1819,75 +1874,121 @@ function resetCalibrationForm() {
     document.getElementById('calibration-mode').value = 'schedule';
     document.getElementById('schedule-fields').style.display = 'block';
     document.getElementById('complete-fields').style.display = 'none';
-    document.getElementById('calibration-submit-btn').textContent = 'Jadwalkan';
+    
+    const submitBtn = document.getElementById('calibration-submit-btn');
+    submitBtn.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i><span>Jadwalkan</span>';
+    
     document.getElementById('calibration-modal-title').textContent = 'Kalibrasi Alat';
     
     // Reset mode button styles
     document.querySelectorAll('.mode-btn').forEach(btn => {
         if (btn.dataset.mode === 'schedule') {
-            btn.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700');
+            btn.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700', 'font-medium');
             btn.classList.remove('border-gray-300', 'text-gray-700');
         } else {
-            btn.classList.remove('border-green-600', 'bg-green-50', 'text-green-700');
-            btn.classList.add('border-gray-300', 'text-gray-700');
+            btn.classList.remove('border-green-600', 'bg-green-50', 'text-green-700', 'font-medium');
+            btn.classList.add('border-gray-300', 'text-gray-700', 'font-medium');
         }
     });
+    
+    // Reset required attributes properly
+    const scheduleDate = document.getElementById('calibration-date');
+    const completeDate = document.getElementById('complete-date');
+    
+    scheduleDate.setAttribute('required', 'required');
+    scheduleDate.value = '';
+    
+    completeDate.removeAttribute('required');
+    completeDate.value = '';
+    
+    // Clear next calibration date
+    const nextCalDate = document.getElementById('next-calibration-date');
+    if (nextCalDate) {
+        nextCalDate.value = '';
+    }
+    
+    lucide.createIcons();
 }
-
 function toggleCalibrationMode(mode) {
-    document.getElementById('calibration-mode').value = mode;
+    console.log('Switching to mode:', mode);
+    
+    const modeInput = document.getElementById('calibration-mode');
+    modeInput.value = mode;
+    
+    const scheduleFields = document.getElementById('schedule-fields');
+    const completeFields = document.getElementById('complete-fields');
+    const submitBtn = document.getElementById('calibration-submit-btn');
+    const scheduleDate = document.getElementById('calibration-date');
+    const completeDate = document.getElementById('complete-date');
     
     // Update button styles
     document.querySelectorAll('.mode-btn').forEach(btn => {
         if (btn.dataset.mode === mode) {
             if (mode === 'schedule') {
-                btn.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700');
+                btn.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700', 'font-medium');
                 btn.classList.remove('border-gray-300', 'text-gray-700', 'border-green-600', 'bg-green-50', 'text-green-700');
             } else {
-                btn.classList.add('border-green-600', 'bg-green-50', 'text-green-700');
+                btn.classList.add('border-green-600', 'bg-green-50', 'text-green-700', 'font-medium');
                 btn.classList.remove('border-gray-300', 'text-gray-700', 'border-blue-600', 'bg-blue-50', 'text-blue-700');
             }
         } else {
-            btn.classList.add('border-gray-300', 'text-gray-700');
+            btn.classList.add('border-gray-300', 'text-gray-700', 'font-medium');
             btn.classList.remove('border-blue-600', 'bg-blue-50', 'text-blue-700', 'border-green-600', 'bg-green-50', 'text-green-700');
         }
     });
     
     if (mode === 'schedule') {
-        document.getElementById('schedule-fields').style.display = 'block';
-        document.getElementById('complete-fields').style.display = 'none';
-        document.getElementById('calibration-submit-btn').textContent = 'Jadwalkan';
+        scheduleFields.style.display = 'block';
+        completeFields.style.display = 'none';
+        submitBtn.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i><span>Jadwalkan</span>';
         
-        // Clear complete fields
-        document.getElementById('complete-date').removeAttribute('required');
-        document.getElementById('calibration-result').removeAttribute('required');
+        scheduleDate.setAttribute('required', 'required');
+        scheduleDate.removeAttribute('disabled');
+        completeDate.removeAttribute('required');
+        completeDate.setAttribute('disabled', 'disabled');
         
-        // Make schedule field required
-        document.getElementById('calibration-date').setAttribute('required', 'required');
-    } else {
-        document.getElementById('schedule-fields').style.display = 'none';
-        document.getElementById('complete-fields').style.display = 'block';
-        document.getElementById('calibration-submit-btn').textContent = 'Selesaikan Kalibrasi';
+    } else if (mode === 'complete') {
+        scheduleFields.style.display = 'none';
+        completeFields.style.display = 'block';
+        submitBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 mr-2"></i><span>Selesaikan Kalibrasi</span>';
         
-        // Set default date to today
-        document.getElementById('complete-date').value = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+        completeDate.value = today;
         
-        // Clear schedule fields
-        document.getElementById('calibration-date').removeAttribute('required');
-        
-        // Make complete fields required
-        document.getElementById('complete-date').setAttribute('required', 'required');
+        completeDate.setAttribute('required', 'required');
+        completeDate.removeAttribute('disabled');
+        scheduleDate.removeAttribute('required');
+        scheduleDate.setAttribute('disabled', 'disabled');
     }
     
     lucide.createIcons();
 }
-
-// Handle calibration form submission
 document.getElementById('calibration-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const submitBtn = document.getElementById('calibration-submit-btn');
     const originalContent = submitBtn.innerHTML;
+    const mode = document.getElementById('calibration-mode').value;
+    
+    // Get the correct date field based on mode
+    let tanggalKalibrasi;
+    if (mode === 'schedule') {
+        tanggalKalibrasi = document.getElementById('calibration-date').value;
+    } else {
+        tanggalKalibrasi = document.getElementById('complete-date').value;
+    }
+    
+    // Validation
+    if (!tanggalKalibrasi || tanggalKalibrasi.trim() === '') {
+        showToast('error', 'Tanggal kalibrasi harus diisi');
+        return;
+    }
+    
+    const alatId = document.getElementById('calibration-alat-id').value;
+    if (!alatId || alatId.trim() === '') {
+        showToast('error', 'ID Alat tidak valid');
+        return;
+    }
     
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 loading mr-2"></i>Memproses...';
@@ -1896,25 +1997,38 @@ document.getElementById('calibration-form').addEventListener('submit', async fun
     try {
         const formData = new FormData(this);
         
+        // Pastikan mode dan tanggal yang benar di-set
+        formData.set('mode', mode);
+        formData.set('tanggal_kalibrasi', tanggalKalibrasi);
+        formData.set('alat_id', alatId);
+        
+        console.log('Submitting form with mode:', mode, 'date:', tanggalKalibrasi);
+        
         const response = await fetch('<?= base_url("inventory_lab/ajax_save_calibration") ?>', {
             method: 'POST',
             body: formData
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Server response:', data);
         
         if (data.success) {
             showToast('success', data.message);
             closeCalibrationModal();
-            loadInventoryData();
-            loadStatistics();
-            loadCalibrationReminders();
+            // Refresh data
+            await loadInventoryData();
+            await loadStatistics();
+            await loadCalibrationReminders();
         } else {
-            showToast('error', data.message);
+            showToast('error', data.message || 'Gagal menyimpan kalibrasi');
         }
     } catch (error) {
         console.error('Error saving calibration:', error);
-        showToast('error', 'Terjadi kesalahan saat menyimpan kalibrasi');
+        showToast('error', 'Terjadi kesalahan saat menyimpan kalibrasi: ' + error.message);
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalContent;
@@ -1922,9 +2036,6 @@ document.getElementById('calibration-form').addEventListener('submit', async fun
     }
 });
 
-// ==========================================
-// CALIBRATION HISTORY
-// ==========================================
 async function viewCalibrationHistory(alatId, itemName) {
     try {
         document.getElementById('calibration-history-modal').classList.remove('hidden');

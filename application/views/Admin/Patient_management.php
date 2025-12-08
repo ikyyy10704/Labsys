@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Pasien - Labsys</title>
+    <title>Kelola Pasien - LabSy</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -199,8 +199,8 @@
                     <tr id="loading-row">
                         <td colspan="7" class="px-6 py-12 text-center">
                             <div class="flex items-center justify-center space-x-2">
-                                <i data-lucide="loader-2" class="w-5 h-5 text-blue-600 loading"></i>
-                                <span class="text-gray-500">Memuat data pasien...</span>
+                                <i data-lucide="loader" class="w-5 h-5 text-blue-600 loading"></i>
+                                <span class="text-gray-600">Memuat data pasien...</span>
                             </div>
                         </td>
                     </tr>
@@ -210,7 +210,7 @@
     </div>
 </div>
 
-<!-- Create Modal -->
+<!-- Create Modal dengan Validasi NIK yang Diperbaiki -->
 <div id="create-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div class="p-6 border-b border-gray-100">
@@ -242,11 +242,34 @@
                                    required>
                         </div>
                         
+                        <!-- PERBAIKAN: Input NIK dengan validasi lengkap -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">NIK (16 digit) *</label>
-                            <input type="text" name="nik" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                   maxlength="16" required>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                NIK (16 digit) *
+                            </label>
+                            <div class="relative">
+                                <input type="text" 
+                                       id="nik-create" 
+                                       name="nik" 
+                                       class="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       maxlength="16" 
+                                       inputmode="numeric"
+                                       pattern="[0-9]{16}"
+                                       required
+                                       oninput="validateNIK(this); updateNIKCounter(this, 'nik-counter-create')"
+                                       onblur="checkNIKExists(this.value, 'nik-message-create', null)"
+                                       placeholder="Masukkan 16 digit NIK"
+                                       autocomplete="off">
+                                <span id="nik-counter-create" 
+                                      class="absolute right-3 top-2.5 text-xs font-medium text-gray-500">
+                                    0/16
+                                </span>
+                            </div>
+                            <div id="nik-message-create" class="mt-1 text-xs"></div>
+                            <p class="text-xs text-gray-500 mt-1 flex items-center">
+                                <i data-lucide="info" class="w-3 h-3 inline mr-1"></i>
+                                NIK harus 16 digit angka dan unik
+                            </p>
                         </div>
                         
                         <div>
@@ -382,7 +405,7 @@
                         class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200">
                     Batal
                 </button>
-                <button type="submit" 
+                <button type="submit" id="submit-create-btn"
                         class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2">
                     <i data-lucide="check" class="w-4 h-4"></i>
                     <span>Simpan</span>
@@ -434,12 +457,16 @@
 const BASE_URL = '<?= base_url() ?>';
 let allPatients = [];
 let patientStats = {};
+let nikCheckTimeout = null; // Global timeout untuk debouncing
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();
     loadPatientsData();
     ensureFullwidthLayout();
+    
+    // Setup form validation untuk create form
+    setupCreateFormValidation();
 });
 
 // Ensure fullwidth layout
@@ -478,61 +505,283 @@ function calculateAge() {
 function openCreateModal() {
     document.getElementById('create-modal').classList.remove('hidden');
     document.getElementById('create-form').reset();
+    
+    // Reset NIK validation UI
+    const nikInput = document.getElementById('nik-create');
+    const nikMessage = document.getElementById('nik-message-create');
+    const nikCounter = document.getElementById('nik-counter-create');
+    
+    if (nikInput) {
+        nikInput.classList.remove('border-red-300', 'border-yellow-300', 'border-green-500');
+        nikInput.classList.add('border-gray-300');
+    }
+    if (nikMessage) nikMessage.innerHTML = '';
+    if (nikCounter) {
+        nikCounter.textContent = '0/16';
+        nikCounter.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
+        nikCounter.classList.add('text-gray-500');
+    }
+    
     lucide.createIcons();
 }
 
 // Close create modal
 function closeCreateModal() {
     document.getElementById('create-modal').classList.add('hidden');
+    ensureFullwidthLayout();
 }
 
-// Submit create form
-document.getElementById('create-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
+/**
+ * PERBAIKAN: Setup validation untuk create form
+ */
+function setupCreateFormValidation() {
+    const form = document.getElementById('create-form');
+    const nikInput = document.getElementById('nik-create');
+    const submitBtn = document.getElementById('submit-create-btn');
     
-    const formData = new FormData(this);
+    if (!form || !nikInput) return;
     
-    // Calculate and add age to form data
-    const birthDate = formData.get('tanggal_lahir');
-    if (birthDate) {
-        const birth = new Date(birthDate);
-        const today = new Date();
-        let age = today.getFullYear() - birth.getFullYear();
-        const monthDiff = today.getMonth() - birth.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-            age--;
+    // Handle form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validasi NIK harus 16 digit
+        if (nikInput.value.length !== 16) {
+            showFlashMessage('error', 'NIK harus 16 digit! Saat ini: ' + nikInput.value.length + ' digit');
+            nikInput.focus();
+            nikInput.select();
+            return false;
         }
-        formData.append('umur', age);
+        
+        // Check if submit button is disabled (NIK already exists)
+        if (submitBtn && submitBtn.disabled) {
+            showFlashMessage('error', 'NIK sudah terdaftar! Silakan gunakan NIK yang berbeda.');
+            nikInput.focus();
+            nikInput.select();
+            return false;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin h-4 w-4 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Menyimpan...</span>
+        `;
+        
+        try {
+            const formData = new FormData(form);
+            
+            const response = await fetch(BASE_URL + 'pasien/ajax_create_patient', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showFlashMessage('success', data.message);
+                closeCreateModal();
+                loadPatientsData();
+            } else {
+                showFlashMessage('error', data.message || 'Gagal menambahkan pasien');
+                
+                // Show validation errors if available
+                if (data.errors) {
+                    let errorMsg = '<ul class="list-disc ml-5">';
+                    for (let field in data.errors) {
+                        errorMsg += `<li>${data.errors[field]}</li>`;
+                    }
+                    errorMsg += '</ul>';
+                    showFlashMessage('error', errorMsg);
+                }
+            }
+        } catch (error) {
+            console.error('Error creating patient:', error);
+            showFlashMessage('error', 'Terjadi kesalahan sistem');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Simpan</span>
+            `;
+            lucide.createIcons();
+        }
+    });
+}
+
+/**
+ * PERBAIKAN: Validasi NIK - hanya angka, max 16 digit
+ * Sesuai dengan controller Administrasi line 1765
+ */
+function validateNIK(input) {
+    // Remove non-numeric characters
+    let value = input.value.replace(/[^0-9]/g, '');
+    
+    // Limit to 16 digits
+    if (value.length > 16) {
+        value = value.substring(0, 16);
     }
     
-    try {
-        const response = await fetch(BASE_URL + 'pasien/ajax_create_patient', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if(data.success) {
-            showFlashMessage('success', data.message);
-            closeCreateModal();
-            loadPatientsData();
-        } else {
-            if (data.errors) {
-                let errorMsg = 'Validasi gagal:\n';
-                for (let field in data.errors) {
-                    errorMsg += '- ' + data.errors[field] + '\n';
+    input.value = value;
+    
+    // Visual border feedback
+    input.classList.remove('border-gray-300', 'border-red-300', 'border-yellow-300', 'border-green-500');
+    
+    if (value.length === 16) {
+        input.classList.add('border-green-500');
+    } else if (value.length > 10) {
+        input.classList.add('border-yellow-300');
+    } else if (value.length > 0) {
+        input.classList.add('border-red-300');
+    } else {
+        input.classList.add('border-gray-300');
+    }
+}
+
+/**
+ * PERBAIKAN: Update NIK counter display (0/16 format)
+ */
+function updateNIKCounter(input, counterId) {
+    const counter = document.getElementById(counterId);
+    if (!counter) return;
+    
+    const length = input.value.length;
+    const maxLength = 16;
+    
+    // Update counter text
+    counter.textContent = `${length}/${maxLength}`;
+    
+    // Update counter color based on length
+    counter.classList.remove('text-gray-500', 'text-red-600', 'text-yellow-600', 'text-green-600');
+    
+    if (length === maxLength) {
+        counter.classList.add('text-green-600', 'font-bold');
+    } else if (length > 10) {
+        counter.classList.add('text-yellow-600');
+    } else if (length > 0) {
+        counter.classList.add('text-red-600');
+    } else {
+        counter.classList.add('text-gray-500');
+    }
+}
+
+/**
+ * PERBAIKAN: Check if NIK already exists via AJAX
+ * Sesuai dengan function di Administrasi
+ */
+async function checkNIKExists(nik, messageElementId, excludePatientId = null) {
+    const messageElement = document.getElementById(messageElementId);
+    const submitBtn = document.getElementById('submit-create-btn') || 
+                      document.querySelector('#edit-form button[type="submit"]');
+    
+    if (!messageElement) return;
+    
+    // Clear previous timeout
+    if (nikCheckTimeout) {
+        clearTimeout(nikCheckTimeout);
+    }
+    
+    // Reset message if NIK is empty or not 16 digits
+    if (!nik || nik.length !== 16) {
+        messageElement.innerHTML = '';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+            submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }
+        return;
+    }
+    
+    // Show checking status
+    messageElement.innerHTML = `
+        <span class="flex items-center text-blue-600 animate-pulse">
+            <svg class="animate-spin h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Memeriksa NIK...
+        </span>
+    `;
+    
+    // Delay to avoid too many requests (debouncing)
+    nikCheckTimeout = setTimeout(async () => {
+        try {
+            // Build URL with exclude_id parameter if provided
+            let url = BASE_URL + `pasien/check_nik_exists?nik=${encodeURIComponent(nik)}`;
+            if (excludePatientId) {
+                url += `&exclude_id=${excludePatientId}`;
+            }
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.exists) {
+                // NIK already exists
+                messageElement.innerHTML = `
+                    <div class="flex items-start space-x-1 text-red-600 bg-red-50 p-2 rounded border border-red-200 mt-1">
+                        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="flex-1">
+                            <span class="font-semibold block">NIK sudah terdaftar!</span>
+                            <div class="mt-1 text-sm">
+                                <span class="font-medium text-gray-900">${data.patient.nama}</span>
+                                <span class="text-gray-600"> - ${data.patient.nomor_registrasi}</span>
+                            </div>
+                            <span class="text-xs text-gray-600">Telp: ${data.patient.telepon}</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Disable submit button
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+                    submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 }
-                showFlashMessage('error', errorMsg);
             } else {
-                showFlashMessage('error', data.message);
+                // NIK available
+                messageElement.innerHTML = `
+                    <span class="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded mt-1">
+                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-medium text-sm">NIK tersedia</span>
+                    </span>
+                `;
+                
+                // Enable submit button
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+                    submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error checking NIK:', error);
+            messageElement.innerHTML = `
+                <span class="flex items-center text-yellow-600 bg-yellow-50 px-2 py-1 rounded mt-1">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-xs font-medium">Gagal memeriksa NIK, coba lagi</span>
+                </span>
+            `;
+            
+            // Enable submit button on error (allow user to proceed)
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+                submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
             }
         }
-    } catch(error) {
-        console.error('Error:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat menyimpan data');
-    }
-});
+    }, 500); // 500ms delay for debouncing
+}
 
 // Load patients data
 async function loadPatientsData() {
@@ -541,48 +790,18 @@ async function loadPatientsData() {
         const data = await response.json();
         
         if (data.success) {
-            allPatients = data.patients;
-            patientStats = data.stats;
+            allPatients = data.patients || [];
+            patientStats = data.stats || {};
+            
             updateStatistics();
-            renderPatientsTable(allPatients);
-            updatePatientCount(allPatients.length);
+            displayPatients(allPatients);
         } else {
             showFlashMessage('error', 'Gagal memuat data pasien');
-            renderEmptyState();
         }
     } catch (error) {
         console.error('Error loading patients:', error);
         showFlashMessage('error', 'Terjadi kesalahan saat memuat data');
-        renderEmptyState();
-    } finally {
-        ensureFullwidthLayout();
     }
-}
-
-// Render empty state
-function renderEmptyState() {
-    const tbody = document.getElementById('patients-table-body');
-    tbody.innerHTML = `
-        <tr class="fullwidth-container">
-            <td colspan="7" class="px-6 py-12 text-center">
-                <div class="flex flex-col items-center space-y-4">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                        <i data-lucide="users" class="w-8 h-8 text-gray-400"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">Tidak ada pasien</h3>
-                        <p class="text-gray-500 mb-4">Belum ada data pasien yang tersedia</p>
-                        <button onclick="openCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 mx-auto">
-                            <i data-lucide="user-plus" class="w-4 h-4"></i>
-                            <span>Tambah Pasien Pertama</span>
-                        </button>
-                    </div>
-                </div>
-            </td>
-        </tr>
-    `;
-    lucide.createIcons();
-    ensureFullwidthLayout();
 }
 
 // Update statistics
@@ -593,110 +812,82 @@ function updateStatistics() {
     document.getElementById('stat-female').textContent = patientStats.female || 0;
 }
 
-// Update patient count
-function updatePatientCount(count) {
-    document.getElementById('patient-count').textContent = `${count} pasien`;
-}
-
-// Render patients table
-function renderPatientsTable(patients) {
+// Display patients in table
+function displayPatients(patients) {
     const tbody = document.getElementById('patients-table-body');
+    const patientCount = document.getElementById('patient-count');
     
-    if (patients.length === 0) {
-        renderEmptyState();
-        return;
-    }
-
-    tbody.innerHTML = patients.map(patient => {
-        const avatar = patient.nama.substring(0, 2).toUpperCase();
-        const genderColor = patient.jenis_kelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800';
-        const genderText = patient.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan';
-        
-        return `
-            <tr class="hover:bg-gray-50 transition-colors duration-200 fullwidth-container">
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-                            ${avatar}
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900">${patient.nama}</div>
-                            <div class="text-sm text-gray-500">REG: ${patient.nomor_registrasi || '-'}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${patient.nik || '-'}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${genderColor}">
-                        ${genderText}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${patient.umur || '-'} tahun</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${patient.asal_rujukan || 'Tidak ada rujukan'}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${formatDate(patient.created_at)}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex items-center space-x-2">
-                        <button onclick="viewPatient(${patient.pasien_id})" 
-                                class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors duration-200">
-                            <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
-                            Lihat
-                        </button>
-                        <button onclick="editPatient(${patient.pasien_id})" 
-                                class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 transition-colors duration-200">
-                            <i data-lucide="edit" class="w-3 h-3 mr-1"></i>
-                            Edit
-                        </button>
-                        <button onclick="deletePatient(${patient.pasien_id})" 
-                                class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 transition-colors duration-200">
-                            <i data-lucide="trash-2" class="w-3 h-3 mr-1"></i>
-           
-                        </button>
+    if (!patients || patients.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center justify-center space-y-2">
+                        <i data-lucide="inbox" class="w-12 h-12 text-gray-400"></i>
+                        <p class="text-gray-600">Tidak ada data pasien</p>
                     </div>
                 </td>
             </tr>
         `;
-    }).join('');
+        patientCount.textContent = '0 pasien';
+        lucide.createIcons();
+        return;
+    }
+    
+    patientCount.textContent = `${patients.length} pasien`;
+    
+    tbody.innerHTML = patients.map(patient => `
+        <tr class="hover:bg-gray-50 transition-colors duration-150">
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                        ${patient.nama.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">${patient.nama}</div>
+                        <div class="text-xs text-gray-500">${patient.nomor_registrasi}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${patient.nik || '-'}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    patient.jenis_kelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+                }">
+                    ${patient.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                ${patient.umur || '-'} tahun
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                ${patient.asal_rujukan || '-'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                ${formatDate(patient.created_at)}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                <button onclick="viewPatient(${patient.pasien_id})" 
+                        class="text-blue-600 hover:text-blue-900 transition-colors duration-200"
+                        title="Lihat Detail">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+                <button onclick="editPatient(${patient.pasien_id})" 
+                        class="text-yellow-600 hover:text-yellow-900 transition-colors duration-200"
+                        title="Edit">
+                    <i data-lucide="edit" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deletePatient(${patient.pasien_id}, '${patient.nama}')" 
+                        class="text-red-600 hover:text-red-900 transition-colors duration-200"
+                        title="Hapus">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
     
     lucide.createIcons();
-    ensureFullwidthLayout();
-}
-
-// Search patients
-function searchPatients() {
-    const searchTerm = document.getElementById('search-input').value.toLowerCase();
-    const genderFilter = document.getElementById('gender-filter').value;
-    
-    let filteredPatients = allPatients;
-    
-    if (searchTerm) {
-        filteredPatients = filteredPatients.filter(patient => 
-            patient.nama.toLowerCase().includes(searchTerm) ||
-            (patient.nik && patient.nik.toLowerCase().includes(searchTerm)) ||
-            (patient.telepon && patient.telepon.toLowerCase().includes(searchTerm)) ||
-            (patient.nomor_registrasi && patient.nomor_registrasi.toLowerCase().includes(searchTerm))
-        );
-    }
-    
-    if (genderFilter) {
-        filteredPatients = filteredPatients.filter(patient => patient.jenis_kelamin === genderFilter);
-    }
-    
-    renderPatientsTable(filteredPatients);
-    updatePatientCount(filteredPatients.length);
-    ensureFullwidthLayout();
-}
-
-// Filter patients
-function filterPatients() {
-    searchPatients();
 }
 
 // View patient details
@@ -706,7 +897,7 @@ async function viewPatient(patientId) {
         const data = await response.json();
         
         if (data.success) {
-            showPatientDetailsModal(data.patient);
+            displayPatientDetails(data.patient);
         } else {
             showFlashMessage('error', data.message);
         }
@@ -716,29 +907,31 @@ async function viewPatient(patientId) {
     }
 }
 
-// Show patient details modal
-function showPatientDetailsModal(patient) {
+// Display patient details
+function displayPatientDetails(patient) {
     const viewContent = document.getElementById('view-content');
     
     const detailsHTML = `
         <div class="space-y-6">
-            <!-- Patient Avatar & Basic Info -->
-            <div class="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
-                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    ${patient.nama.substring(0, 2).toUpperCase()}
-                </div>
-                <div>
-                    <h4 class="text-xl font-bold text-gray-900">${patient.nama}</h4>
-                    <p class="text-sm text-gray-600">No. Registrasi: ${patient.nomor_registrasi || '-'}</p>
-                    <p class="text-sm text-gray-600">Didaftarkan: ${formatDate(patient.created_at)}</p>
+            <!-- Basic Info -->
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg">
+                <div class="flex items-center space-x-4">
+                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                        ${patient.nama.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">${patient.nama}</h2>
+                        <p class="text-blue-600 font-medium">${patient.nomor_registrasi}</p>
+                        <p class="text-sm text-gray-600">Terdaftar: ${formatDate(patient.created_at)}</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Data Pribadi -->
+            <!-- Personal Information -->
             <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                     <i data-lucide="user" class="w-5 h-5 text-blue-600"></i>
-                    <span>Data Pribadi</span>
+                    <span>Informasi Pribadi</span>
                 </h3>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -751,32 +944,25 @@ function showPatientDetailsModal(patient) {
                         <span class="text-gray-900">${patient.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b border-gray-100">
-                        <span class="font-medium text-gray-700">Tempat Lahir:</span>
-                        <span class="text-gray-900">${patient.tempat_lahir || '-'}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-gray-100">
-                        <span class="font-medium text-gray-700">Tanggal Lahir:</span>
-                        <span class="text-gray-900">${patient.tanggal_lahir ? formatDate(patient.tanggal_lahir) : '-'}</span>
+                        <span class="font-medium text-gray-700">Tempat, Tanggal Lahir:</span>
+                        <span class="text-gray-900">${patient.tempat_lahir || '-'}, ${formatDate(patient.tanggal_lahir)}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b border-gray-100">
                         <span class="font-medium text-gray-700">Umur:</span>
-                        <span class="text-gray-900">${patient.umur ? patient.umur + ' tahun' : '-'}</span>
+                        <span class="text-gray-900">${patient.umur || '-'} tahun</span>
                     </div>
                     <div class="flex justify-between py-2 border-b border-gray-100">
                         <span class="font-medium text-gray-700">Pekerjaan:</span>
                         <span class="text-gray-900">${patient.pekerjaan || '-'}</span>
                     </div>
-                </div>
-
-                <div class="mt-4">
                     <div class="flex justify-between py-2 border-b border-gray-100">
                         <span class="font-medium text-gray-700">Alamat:</span>
-                        <span class="text-gray-900 text-right">${patient.alamat_domisili || '-'}</span>
+                        <span class="text-gray-900">${patient.alamat_domisili || '-'}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Kontak -->
+            <!-- Contact Info -->
             <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                     <i data-lucide="phone" class="w-5 h-5 text-blue-600"></i>
@@ -795,7 +981,7 @@ function showPatientDetailsModal(patient) {
                 </div>
             </div>
 
-            <!-- Informasi Medis -->
+            <!-- Medical Info -->
             <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                     <i data-lucide="clipboard" class="w-5 h-5 text-blue-600"></i>
@@ -814,7 +1000,7 @@ function showPatientDetailsModal(patient) {
                 </div>
             </div>
 
-            <!-- Informasi Rujukan -->
+            <!-- Referral Info -->
             ${patient.dokter_perujuk || patient.asal_rujukan ? `
             <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
@@ -913,11 +1099,35 @@ function populateEditForm(patient) {
                         <input type="text" name="nama" value="${patient.nama}" 
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg" required>
                     </div>
+                    <!-- PERBAIKAN: Input NIK dengan validasi untuk Edit Form -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">NIK *</label>
-                        <input type="text" name="nik" value="${patient.nik || ''}" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                               maxlength="16" required>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            NIK (16 digit) *
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="nik-edit" 
+                                   name="nik" 
+                                   value="${patient.nik || ''}"
+                                   class="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   maxlength="16" 
+                                   inputmode="numeric"
+                                   pattern="[0-9]{16}"
+                                   required
+                                   oninput="validateNIK(this); updateNIKCounter(this, 'nik-counter-edit')"
+                                   onblur="checkNIKExists(this.value, 'nik-message-edit', ${patient.pasien_id})"
+                                   placeholder="Masukkan 16 digit NIK"
+                                   autocomplete="off">
+                            <span id="nik-counter-edit" 
+                                  class="absolute right-3 top-2.5 text-xs font-medium text-green-600">
+                                ${(patient.nik || '').length}/16
+                            </span>
+                        </div>
+                        <div id="nik-message-edit" class="mt-1 text-xs"></div>
+                        <p class="text-xs text-gray-500 mt-1 flex items-center">
+                            <i data-lucide="info" class="w-3 h-3 inline mr-1"></i>
+                            NIK harus 16 digit angka dan unik
+                        </p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin *</label>
@@ -1027,7 +1237,7 @@ function populateEditForm(patient) {
                         class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
                     Batal
                 </button>
-                <button type="submit" 
+                <button type="submit" id="submit-edit-btn"
                         class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-colors duration-200">
                     Simpan Perubahan
                 </button>
@@ -1038,12 +1248,36 @@ function populateEditForm(patient) {
     document.getElementById('edit-form').innerHTML = formContent;
     lucide.createIcons();
     
+    // Initialize NIK counter for edit form
+    const nikEditInput = document.getElementById('nik-edit');
+    if (nikEditInput) {
+        updateNIKCounter(nikEditInput, 'nik-counter-edit');
+    }
+    
     // Handle edit form submission
     document.getElementById('edit-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const formData = new FormData(this);
         const patientId = formData.get('patient_id');
+        const nikInput = document.getElementById('nik-edit');
+        const submitBtn = document.getElementById('submit-edit-btn');
+        
+        // Validasi NIK harus 16 digit
+        if (nikInput.value.length !== 16) {
+            showFlashMessage('error', 'NIK harus 16 digit! Saat ini: ' + nikInput.value.length + ' digit');
+            nikInput.focus();
+            nikInput.select();
+            return false;
+        }
+        
+        // Check if submit button is disabled (NIK already exists)
+        if (submitBtn && submitBtn.disabled) {
+            showFlashMessage('error', 'NIK sudah terdaftar! Silakan gunakan NIK yang berbeda.');
+            nikInput.focus();
+            nikInput.select();
+            return false;
+        }
         
         // Calculate and add age
         const birthDate = formData.get('tanggal_lahir');
@@ -1058,6 +1292,16 @@ function populateEditForm(patient) {
             formData.set('umur', age);
         }
         
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin h-4 w-4 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Menyimpan...</span>
+        `;
+        
         try {
             const response = await fetch(BASE_URL + `pasien/ajax_update_patient/${patientId}`, {
                 method: 'POST',
@@ -1071,40 +1315,27 @@ function populateEditForm(patient) {
                 closeEditModal();
                 loadPatientsData();
             } else {
+                showFlashMessage('error', data.message || 'Gagal mengupdate pasien');
+                
+                // Show validation errors if available
                 if (data.errors) {
-                    let errorMsg = 'Validasi gagal:\n';
+                    let errorMsg = '<ul class="list-disc ml-5">';
                     for (let field in data.errors) {
-                        errorMsg += '- ' + data.errors[field] + '\n';
+                        errorMsg += `<li>${data.errors[field]}</li>`;
                     }
+                    errorMsg += '</ul>';
                     showFlashMessage('error', errorMsg);
-                } else {
-                    showFlashMessage('error', data.message);
                 }
             }
         } catch (error) {
             console.error('Error updating patient:', error);
-            showFlashMessage('error', 'Gagal mengupdate pasien');
+            showFlashMessage('error', 'Terjadi kesalahan sistem');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Simpan Perubahan';
         }
     });
-}
-
-// Calculate age for edit form
-function calculateEditAge() {
-    const birthDateInput = document.querySelector('input[name="tanggal_lahir"]');
-    const ageInput = document.querySelector('input[name="umur"]');
-    
-    if (birthDateInput && ageInput && birthDateInput.value) {
-        const birthDate = new Date(birthDateInput.value);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        
-        ageInput.value = age >= 0 ? age : '';
-    }
 }
 
 function closeEditModal() {
@@ -1112,15 +1343,35 @@ function closeEditModal() {
     ensureFullwidthLayout();
 }
 
+function calculateEditAge() {
+    const birthDateInput = document.querySelector('#edit-form input[name="tanggal_lahir"]');
+    const umurInput = document.querySelector('#edit-form input[name="umur"]');
+    
+    if (!birthDateInput || !umurInput) return;
+    
+    const birthDate = new Date(birthDateInput.value);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    if (age >= 0) {
+        umurInput.value = age;
+    }
+}
+
 // Delete patient
-async function deletePatient(patientId) {
-    if (!confirm('Apakah Anda yakin ingin menghapus data pasien ini? Tindakan ini tidak dapat dibatalkan.')) {
+async function deletePatient(patientId, patientName) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus pasien "${patientName}"?\n\nTindakan ini tidak dapat dibatalkan.`)) {
         return;
     }
     
     try {
         const response = await fetch(BASE_URL + `pasien/ajax_delete_patient/${patientId}`, {
-            method: 'DELETE'
+            method: 'POST'
         });
         
         const data = await response.json();
@@ -1133,122 +1384,90 @@ async function deletePatient(patientId) {
         }
     } catch (error) {
         console.error('Error deleting patient:', error);
-        showFlashMessage('error', 'Gagal menghapus pasien');
+        showFlashMessage('error', 'Terjadi kesalahan saat menghapus pasien');
     }
 }
 
-function exportToExcel() {
-    const filters = getCurrentFilters();
-    const params = new URLSearchParams(filters);
-    window.open(BASE_URL + 'excel_controller/export_patients?' + params.toString(), '_blank');
-}
-
-function getCurrentFilters() {
-    return {
-        search: document.getElementById('search-input').value || '',
-        gender: document.getElementById('gender-filter').value || '',
-        start_date: '',
-        end_date: ''
-    };
-}
-
-// Utility functions
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
+// Search patients
+function searchPatients() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const genderFilter = document.getElementById('gender-filter').value;
+    
+    let filteredPatients = allPatients.filter(patient => {
+        const matchesSearch = !searchTerm || 
+            patient.nama.toLowerCase().includes(searchTerm) ||
+            (patient.nik && patient.nik.includes(searchTerm)) ||
+            (patient.nomor_registrasi && patient.nomor_registrasi.toLowerCase().includes(searchTerm));
+        
+        const matchesGender = !genderFilter || patient.jenis_kelamin === genderFilter;
+        
+        return matchesSearch && matchesGender;
     });
+    
+    displayPatients(filteredPatients);
 }
 
+// Filter patients
+function filterPatients() {
+    searchPatients();
+}
+
+// Export to Excel
+function exportToExcel() {
+    showFlashMessage('info', 'Fitur export sedang dalam pengembangan');
+}
+
+// Show flash message
 function showFlashMessage(type, message) {
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        toastContainer.className = 'fixed top-4 right-4 z-50 space-y-2';
-        document.body.appendChild(toastContainer);
-    }
+    const container = document.getElementById('flash-messages');
     
-    const toastId = 'toast-' + Date.now();
-    const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
-    const bgColor = type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
-    const iconColor = type === 'success' ? 'text-green-600' : 'text-red-600';
-    const textColor = type === 'success' ? 'text-green-800' : 'text-red-800';
+    const colors = {
+        success: 'bg-green-50 border-green-200 text-green-800',
+        error: 'bg-red-50 border-red-200 text-red-800',
+        info: 'bg-blue-50 border-blue-200 text-blue-800',
+        warning: 'bg-yellow-50 border-yellow-200 text-yellow-800'
+    };
     
-    const toast = document.createElement('div');
-    toast.id = toastId;
-    toast.className = `${bgColor} ${textColor} border rounded-lg p-4 max-w-sm shadow-lg transform transition-all duration-500 ease-out translate-x-full opacity-0`;
-    toast.innerHTML = `
-        <div class="flex items-start space-x-3">
-            <i data-lucide="${iconName}" class="w-5 h-5 ${iconColor} flex-shrink-0 mt-0.5"></i>
-            <div class="flex-1">
-                <p class="text-sm font-medium whitespace-pre-line">${message}</p>
-            </div>
-            <button onclick="removeToast('${toastId}')" class="text-gray-400 hover:text-gray-600 flex-shrink-0">
+    const icons = {
+        success: 'check-circle',
+        error: 'x-circle',
+        info: 'info',
+        warning: 'alert-triangle'
+    };
+    
+    const messageId = 'flash-' + Date.now();
+    const messageHTML = `
+        <div id="${messageId}" class="fade-in ${colors[type]} border rounded-lg p-4 mb-4 flex items-start space-x-3">
+            <i data-lucide="${icons[type]}" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+            <div class="flex-1">${message}</div>
+            <button onclick="document.getElementById('${messageId}').remove()" class="text-gray-400 hover:text-gray-600">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
     `;
     
-    toastContainer.appendChild(toast);
+    container.insertAdjacentHTML('beforeend', messageHTML);
     lucide.createIcons();
     
+    // Auto remove after 5 seconds
     setTimeout(() => {
-        toast.classList.remove('translate-x-full', 'opacity-0');
-        toast.classList.add('translate-x-0', 'opacity-100');
-    }, 10);
-    
-    setTimeout(() => {
-        removeToast(toastId);
+        const element = document.getElementById(messageId);
+        if (element) {
+            element.style.opacity = '0';
+            element.style.transition = 'opacity 0.3s';
+            setTimeout(() => element.remove(), 300);
+        }
     }, 5000);
 }
 
-function removeToast(toastId) {
-    const toast = document.getElementById(toastId);
-    if (toast) {
-        toast.classList.add('translate-x-full', 'opacity-0');
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.parentElement.removeChild(toast);
-            }
-        }, 500);
-    }
+// Format date
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('id-ID', options);
 }
-
-// Close modal on ESC key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeCreateModal();
-        closeEditModal();
-        closeViewModal();
-    }
-});
-
-// Close modal on backdrop click
-document.getElementById('create-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeCreateModal();
-    }
-});
-
-document.getElementById('edit-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeEditModal();
-    }
-});
-
-document.getElementById('view-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeViewModal();
-    }
-});
-
-// Window resize handler
-window.addEventListener('resize', function() {
-    ensureFullwidthLayout();
-});
 </script>
 
 </body>

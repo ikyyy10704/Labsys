@@ -443,7 +443,7 @@ class Pasien extends CI_Controller {
     }
 
     // ==========================================
-    // VALIDATION CALLBACKS
+
     // ==========================================
 
     public function check_nik_unique($nik, $patient_id)
@@ -552,6 +552,99 @@ class Pasien extends CI_Controller {
         }
         
         $this->output->set_output(json_encode($response));
+    }
+
+    /**
+     * AJAX endpoint untuk check NIK exists
+     * Dipanggil oleh JavaScript untuk validasi real-time
+     * Sesuai dengan pattern di Administrasi controller
+     */
+    public function check_nik_exists()
+    {
+        $this->output->set_content_type('application/json');
+        
+        try {
+            $nik = $this->input->get('nik');
+            $exclude_id = $this->input->get('exclude_id'); // untuk edit, exclude ID sendiri
+            
+            // Validasi input
+            if (empty($nik)) {
+                $this->output->set_output(json_encode(array(
+                    'success' => false,
+                    'exists' => false,
+                    'message' => 'NIK tidak boleh kosong'
+                )));
+                return;
+            }
+            
+            // Validasi panjang NIK
+            if (strlen($nik) !== 16) {
+                $this->output->set_output(json_encode(array(
+                    'success' => false,
+                    'exists' => false,
+                    'message' => 'NIK harus 16 digit'
+                )));
+                return;
+            }
+            
+            // Validasi numeric
+            if (!is_numeric($nik)) {
+                $this->output->set_output(json_encode(array(
+                    'success' => false,
+                    'exists' => false,
+                    'message' => 'NIK harus berupa angka'
+                )));
+                return;
+            }
+            
+            // Check apakah NIK exists di database
+            $exists = $this->Pasien_model->check_nik_exists($nik, $exclude_id);
+            
+            if ($exists) {
+                // NIK sudah terdaftar - ambil data pasien
+                $this->db->where('nik', $nik);
+                if (!empty($exclude_id)) {
+                    $this->db->where('pasien_id !=', $exclude_id);
+                }
+                $patient = $this->db->get('pasien')->row_array();
+                
+                if ($patient) {
+                    $this->output->set_output(json_encode(array(
+                        'success' => true,
+                        'exists' => true,
+                        'message' => 'NIK sudah terdaftar',
+                        'patient' => array(
+                            'pasien_id' => $patient['pasien_id'],
+                            'nama' => $patient['nama'],
+                            'nomor_registrasi' => $patient['nomor_registrasi'],
+                            'telepon' => $patient['telepon']
+                        )
+                    )));
+                } else {
+                    // Seharusnya tidak terjadi, tapi handle just in case
+                    $this->output->set_output(json_encode(array(
+                        'success' => true,
+                        'exists' => true,
+                        'message' => 'NIK sudah terdaftar'
+                    )));
+                }
+            } else {
+                // NIK tersedia
+                $this->output->set_output(json_encode(array(
+                    'success' => true,
+                    'exists' => false,
+                    'message' => 'NIK tersedia'
+                )));
+            }
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error checking NIK exists: ' . $e->getMessage());
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'exists' => false,
+                'message' => 'Terjadi kesalahan sistem'
+            )));
+        }
     }
 
     // ==========================================

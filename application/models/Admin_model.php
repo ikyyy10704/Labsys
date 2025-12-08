@@ -1922,7 +1922,7 @@ class Admin_model extends CI_Model {
     private function _generate_sql_backup($options) {
         try {
             $sql = "-- Database backup generated on " . date('Y-m-d H:i:s') . "\n";
-            $sql .= "-- Generator: Labsys Database Backup System\n";
+            $sql .= "-- Generator: LabSy Database Backup System\n";
             $sql .= "-- Database: " . $this->db->database . "\n\n";
             
             $sql .= "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n";

@@ -234,7 +234,7 @@ class Excel_inventory extends CI_Controller {
         $sheet->setTitle('Inventory Lengkap');
         
         $spreadsheet->getProperties()
-            ->setCreator('Labsys - Sistem Informasi Laboratorium')
+            ->setCreator('LabSy - Sistem Informasi Laboratorium')
             ->setTitle('Laporan Inventory Lengkap')
             ->setSubject('Export Data Inventory')
             ->setDescription('Laporan data inventory laboratorium lengkap')

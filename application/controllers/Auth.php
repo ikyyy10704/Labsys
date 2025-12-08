@@ -102,17 +102,13 @@ class Auth extends CI_Controller {
 
     public function check_session()
     {
-        // AJAX endpoint to check if session is still valid
+
         if (!$this->session->userdata('logged_in')) {
             echo json_encode(['valid' => false]);
         } else {
             echo json_encode(['valid' => true]);
         }
     }
-
-    /**
-     * Redirect user based on their role
-     */
     private function _redirect_by_role()
     {
         $role = $this->session->userdata('role');
@@ -126,6 +122,9 @@ class Auth extends CI_Controller {
                 break;
             case 'petugas_lab':
                 redirect('laboratorium/dashboard');
+                break;
+            case 'supervisor':
+                redirect('supervisor/dashboard');
                 break;
             default:
                 // Fallback for unknown roles

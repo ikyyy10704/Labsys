@@ -83,15 +83,15 @@
                  class="w-12 h-12 object-contain">
         </div>
     </div>
-    <h1 class="text-4xl font-bold text-white mb-2">Labsys System</h1>
-    <p class="text-blue-100">Hospital Information System</p>
+    <h1 class="text-4xl font-bold text-white mb-2">LabSy</h1>
+    <p class="text-blue-100">Sistem Informasi Laboratorium</p>
 </div>
 
         <!-- Login Form -->
         <div class="glass-effect rounded-2xl shadow-2xl p-8">
             <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">Welcome Back</h2>
-                <p class="text-gray-600">Please sign in to your account</p>
+                <h2 class="text-2xl font-bold text-gray-800">Selamat Datang</h2>
+                <p class="text-gray-600">Silahkan Masuk Ke Akun Anda</p>
             </div>
 
             <!-- Error Message -->
@@ -149,5 +149,5 @@
                         id="loginBtn"
                         class="w-full bg-med-blue text-white py-3 px-4 rounded-lg hover:bg-med-light-blue focus:ring-4 focus:ring-blue-200 transition-all duration-200 font-semibold flex items-center justify-center space-x-2">
                     <i data-lucide="log-in" class="w-5 h-5"></i>
-                    <span>Sign In</span>
+                    <span>LogIn</span>
                 </button>

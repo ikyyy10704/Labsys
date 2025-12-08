@@ -67,6 +67,20 @@ class User_model extends CI_Model {
                     $user_details['alamat'] = $lab_info['alamat'];
                 }
                 break;
+            case 'supervisor':
+                $this->db->select('nama_supervisor as nama_lengkap, jenis_keahlian, telepon, alamat');
+                $this->db->where('user_id', $user['user_id']);
+                $query = $this->db->get('supervisor');
+                if ($query->num_rows() == 1) {
+                    $lab_info = $query->row_array();
+                    $user_details['nama_lengkap'] = $lab_info['nama_lengkap'];
+                    $user_details['jenis_keahlian'] = $lab_info['jenis_keahlian'];
+                    $user_details['telepon'] = $lab_info['telepon'];
+                    $user_details['alamat'] = $lab_info['alamat'];
+                }
+                break;
+                
+
         }
         
         return $user_details;
@@ -92,6 +106,7 @@ class User_model extends CI_Model {
         $this->db->join('administrator a', 'u.user_id = a.user_id', 'left');
         $this->db->join('administrasi adm', 'u.user_id = adm.user_id', 'left');
         $this->db->join('petugas_lab pl', 'u.user_id = pl.user_id', 'left');
+        $this->db->join('supervisor s', 'u.user_id = s.user_id', 'left');
         $this->db->order_by('u.created_at', 'DESC');
         $query = $this->db->get();
         return $query->result_array();
@@ -118,6 +133,9 @@ class User_model extends CI_Model {
                     break;
                 case 'petugas_lab':
                     $this->db->insert('petugas_lab', $role_data);
+                    break;
+                case 'supervisor':
+                    $this->db->insert('supervisor', $role_data);
                     break;
             }
         }
@@ -156,6 +174,10 @@ class User_model extends CI_Model {
                     $this->db->where('user_id', $user_id);
                     $this->db->update('petugas_lab', $role_data);
                     break;
+                case 'supervisor':
+                    $this->db->where('user_id', $user_id);
+                    $this->db->update('supervisor', $role_data);
+                    break;
             }
         }
         
@@ -183,6 +205,10 @@ class User_model extends CI_Model {
             case 'petugas_lab':
                 $this->db->where('user_id', $user_id);
                 $this->db->delete('petugas_lab');
+                break;
+            case 'supervisor':
+                $this->db->where('user_id', $user_id);
+                $this->db->delete('survervisor');
                 break;
         }
         

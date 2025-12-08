@@ -471,7 +471,7 @@
             
             <div class="print-info">
                 <p>Invoice dicetak pada: <?= $print_date ?> oleh: <?= $current_user ?></p>
-                <p>Sistem Informasi Laboratorium - Labsys</p>
+                <p>Sistem Informasi Laboratorium - LabSy</p>
             </div>
         </div>
     </div>

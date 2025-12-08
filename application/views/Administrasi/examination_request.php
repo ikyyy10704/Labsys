@@ -3,54 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Permintaan Pemeriksaan - Labsys</title>
+    <title>Permintaan Pemeriksaan - LabSy</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     
     <style>
-        /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* Loading animation */
-        .loading {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Fade in animation */
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Highlight search results */
-        mark {
-            background-color: #fef08a;
-            padding: 2px 4px;
-            border-radius: 2px;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        select[size] { height: auto; overflow-y: auto; }
+        select[size] option { padding: 8px 12px; cursor: pointer; }
+        select[size] option:hover { background-color: #e0f2fe; }
+        select[size] option:checked { background-color: #3b82f6; color: white; }
+        .pemeriksaan-row { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem; }
+        .remove-btn { opacity: 0; transition: opacity 0.2s; }
+        .pemeriksaan-row:hover .remove-btn { opacity: 1; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -68,13 +40,11 @@
                     <p class="text-blue-100">Kelola dan pantau semua permintaan pemeriksaan laboratorium</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-4">
-                <button onclick="openCreateModal()" 
-                   class="bg-white hover:bg-gray-100 text-blue-600 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 shadow-sm">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span>Buat Permintaan Pemeriksaan</span>
-                </button>
-            </div>
+            <button onclick="openCreateModal()" 
+               class="bg-white hover:bg-gray-100 text-blue-600 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Buat Permintaan Pemeriksaan</span>
+            </button>
         </div>
     </div>
 </div>
@@ -247,7 +217,6 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pasien</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Pemeriksaan</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Pemeriksaan</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Biaya</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                     </tr>
@@ -275,9 +244,6 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900"><?= date('d M Y', strtotime($request['tanggal_pemeriksaan'])) ?></div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">Rp <?= number_format($request['biaya'], 0, ',', '.') ?></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php
@@ -310,29 +276,13 @@
                                         Edit
                                     </button>
                                     <?php endif; ?>
-                                    
-                                    <?php if($request['status_pemeriksaan'] === 'pending'): ?>
-                                    <button onclick="updateStatus(<?= $request['pemeriksaan_id'] ?>, 'progress')" 
-                                       class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 transition-colors duration-200"
-                                       title="Mulai Proses">
-                                        <i data-lucide="play-circle" class="w-3 h-3 mr-1"></i>
-                                        Proses
-                                    </button>
-                                    <?php elseif($request['status_pemeriksaan'] === 'progress'): ?>
-                                    <button onclick="updateStatus(<?= $request['pemeriksaan_id'] ?>, 'selesai')" 
-                                       class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 transition-colors duration-200"
-                                       title="Selesaikan">
-                                        <i data-lucide="check" class="w-3 h-3 mr-1"></i>
-                                        Selesai
-                                    </button>
-                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr id="empty-state-default">
-                            <td colspan="7" class="px-6 py-16 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-16 text-center text-gray-500">
                                 <div class="flex flex-col items-center space-y-4">
                                     <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
                                         <i data-lucide="clipboard-list" class="w-12 h-12 text-gray-300"></i>
@@ -376,9 +326,9 @@
     </div>
 </div>
 
-<!-- Create Modal -->
+<!-- Create Modal - ENHANCED -->
 <div id="create-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div class="p-6 border-b border-gray-100">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
@@ -390,318 +340,390 @@
                 </button>
             </div>
         </div>
+        
         <form id="create-form" class="p-6">
             <div class="space-y-6">
+                <!-- Pilih Pasien -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Pasien *</label>
-                    <select name="pasien_id" id="pasien_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    <div class="relative mb-2">
+                        <input type="text" id="patient-search" 
+                               class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                               placeholder="Cari nama pasien atau NIK..." autocomplete="off">
+                        <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                    </div>
+                    <select name="pasien_id" id="pasien_id" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                            size="6" required>
                         <option value="">-- Pilih Pasien --</option>
                         <?php if(isset($patients) && !empty($patients)): ?>
                             <?php foreach($patients as $patient): ?>
-                                <option value="<?= $patient['pasien_id'] ?>"><?= htmlspecialchars($patient['nama']) ?> - <?= $patient['nik'] ?></option>
+                                <option value="<?= $patient['pasien_id'] ?>" 
+                                        data-name="<?= strtolower(htmlspecialchars($patient['nama'])) ?>" 
+                                        data-nik="<?= $patient['nik'] ?>">
+                                    <?= htmlspecialchars($patient['nama']) ?> - <?= $patient['nik'] ?>
+                                </option>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </select>
                 </div>
                 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Pemeriksaan *</label>
-                    <select name="jenis_pemeriksaan" id="jenis_pemeriksaan" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                        <option value="">-- Pilih Jenis Pemeriksaan --</option>
-                        <option value="Kimia Darah">Kimia Darah</option>
-                        <option value="Hematologi">Hematologi</option>
-                        <option value="Urinologi">Urinologi</option>
-                        <option value="Serologi">Serologi</option>
-                        <option value="TBC">TBC</option>
-                        <option value="IMS">IMS</option>
-                        <option value="MLS">MLS</option>
-                    </select>
-                </div>
-                
+                <!-- Tanggal Pemeriksaan -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Pemeriksaan *</label>
                     <input type="date" name="tanggal_pemeriksaan" id="tanggal_pemeriksaan" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
                            min="<?= date('Y-m-d') ?>" required>
                 </div>
                 
+                <!-- STATUS PASIEN - NEW -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Biaya (Rp) *</label>
-                    <input type="number" name="biaya" id="biaya" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           placeholder="Masukkan biaya pemeriksaan" min="0" step="1000" required>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Pasien Saat Pemeriksaan *</label>
+                    <select name="status_pasien" id="status_pasien" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                            required onchange="toggleObatField()">
+                        <option value="">-- Pilih Status Pasien --</option>
+                        <option value="puasa">Puasa</option>
+                        <option value="belum_puasa">Belum Puasa</option>
+                        <option value="minum_obat">Minum Obat Tertentu</option>
+                    </select>
                 </div>
                 
+                <!-- Keterangan Obat (muncul jika pilih minum obat) -->
+                <div id="obat-container" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Obat yang Diminum *</label>
+                    <textarea name="keterangan_obat" id="keterangan_obat" rows="2" 
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                              placeholder="Contoh: Metformin 500mg, Amlodipine 5mg"></textarea>
+                </div>
+                
+                <!-- JENIS SAMPEL - NEW -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
-                    <textarea name="keterangan" id="keterangan" rows="4" 
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Sampel yang Diambil *</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center space-x-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                            <input type="checkbox" name="sampel[]" value="whole_blood" class="w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm">Whole Blood (Darah Lengkap)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                            <input type="checkbox" name="sampel[]" value="serum" class="w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm">Serum</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                            <input type="checkbox" name="sampel[]" value="plasma" class="w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm">Plasma</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                            <input type="checkbox" name="sampel[]" value="feses" class="w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm">Feses</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                            <input type="checkbox" name="sampel[]" value="urin" class="w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm">Urin</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                            <input type="checkbox" name="sampel[]" value="sputum" class="w-4 h-4 text-blue-600 rounded">
+                            <span class="text-sm">Sputum (Dahak)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                            <input type="checkbox" name="sampel[]" value="lain" class="w-4 h-4 text-blue-600 rounded" onchange="toggleSampelLain()">
+                            <span class="text-sm">Sampel Lain</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Keterangan Sampel Lain -->
+                    <div id="sampel-lain-container" class="hidden mt-2">
+                        <input type="text" name="keterangan_sampel_lain" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                               placeholder="Sebutkan jenis sampel lain...">
+                    </div>
+                </div>
+                
+                <!-- MULTIPLE JENIS PEMERIKSAAN - NEW -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Pemeriksaan *</label>
+                    <div id="pemeriksaan-container">
+                        <!-- Pemeriksaan row pertama -->
+                        <div class="pemeriksaan-row" data-row="1">
+                            <div class="flex items-start space-x-3">
+                                <div class="flex-1">
+                                    <select name="jenis_pemeriksaan[]" class="jenis-pemeriksaan-select w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                                            required onchange="loadSubPemeriksaan(this, 1)">
+                                        <option value="">-- Pilih Jenis Pemeriksaan --</option>
+                                        <option value="Kimia Darah">Kimia Darah</option>
+                                        <option value="Hematologi">Hematologi</option>
+                                        <option value="Urinologi">Urinologi</option>
+                                        <option value="Serologi">Serologi</option>
+                                        <option value="TBC">TBC</option>
+                                        <option value="IMS">IMS</option>
+                                    </select>
+                                    
+                                    <!-- Sub pemeriksaan container -->
+                                    <div id="sub-pemeriksaan-1" class="mt-3 hidden">
+                                        <label class="block text-sm font-medium text-gray-600 mb-2">Sub Pemeriksaan (Opsional)</label>
+                                        <div id="sub-pemeriksaan-checkboxes-1" class="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3"></div>
+                                    </div>
+                                </div>
+                                
+                                <button type="button" class="remove-btn mt-2 p-2 text-red-600 hover:bg-red-50 rounded-lg" 
+                                        onclick="removePemeriksaan(1)" style="opacity: 0;">
+                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tombol Tambah Pemeriksaan -->
+                    <button type="button" onclick="addPemeriksaan()" 
+                            class="mt-3 w-full px-4 py-2 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Tambah Pemeriksaan Lain</span>
+                    </button>
+                </div>
+                
+                <!-- Keterangan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan Tambahan</label>
+                    <textarea name="keterangan" id="keterangan" rows="3" 
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
                               placeholder="Tambahkan keterangan atau catatan khusus..."></textarea>
                 </div>
             </div>
             
             <div class="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
                 <button type="button" onclick="closeCreateModal()" 
-                        class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200">
+                        class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
                     Batal
                 </button>
                 <button type="submit" 
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2">
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2">
                     <i data-lucide="check" class="w-4 h-4"></i>
-                    <span>Simpan</span>
+                    <span>Simpan Permintaan</span>
                 </button>
             </div>
         </form>
-    </div>
-</div>
-
-<!-- Edit Modal -->
-<div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <div class="p-6 border-b border-gray-100">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                    <i data-lucide="edit" class="w-5 h-5 text-orange-600"></i>
-                    <span>Edit Permintaan Pemeriksaan</span>
-                </h3>
-                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-        <form id="edit-form" class="p-6">
-            <input type="hidden" id="edit-pemeriksaan-id" name="pemeriksaan_id">
-            
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Pasien *</label>
-                    <select name="pasien_id" id="edit-pasien-id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                        <option value="">-- Pilih Pasien --</option>
-                        <?php if(isset($patients) && !empty($patients)): ?>
-                            <?php foreach($patients as $patient): ?>
-                                <option value="<?= $patient['pasien_id'] ?>"><?= htmlspecialchars($patient['nama']) ?> - <?= $patient['nik'] ?></option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Pemeriksaan *</label>
-                    <select name="jenis_pemeriksaan" id="edit-jenis-pemeriksaan" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                        <option value="">-- Pilih Jenis Pemeriksaan --</option>
-                        <option value="Kimia Darah">Kimia Darah</option>
-                        <option value="Hematologi">Hematologi</option>
-                        <option value="Urinologi">Urinologi</option>
-                        <option value="Serologi">Serologi</option>
-                        <option value="TBC">TBC</option>
-                        <option value="IMS">IMS</option>
-                        <option value="MLS">MLS</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Pemeriksaan *</label>
-                    <input type="date" name="tanggal_pemeriksaan" id="edit-tanggal-pemeriksaan" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           min="<?= date('Y-m-d') ?>" required>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Biaya (Rp) *</label>
-                    <input type="number" name="biaya" id="edit-biaya" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           placeholder="Masukkan biaya pemeriksaan" min="0" step="1000" required>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
-                    <textarea name="keterangan" id="edit-keterangan" rows="4" 
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                              placeholder="Tambahkan keterangan atau catatan khusus..."></textarea>
-                </div>
-            </div>
-            
-            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
-                <button type="button" onclick="closeEditModal()" 
-                        class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200">
-                    Batal
-                </button>
-                <button type="submit" 
-                        class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2">
-                    <i data-lucide="save" class="w-4 h-4"></i>
-                    <span>Update</span>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Detail Modal -->
-<div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <div class="p-6 border-b border-gray-100">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                    <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
-                    <span>Detail Permintaan Pemeriksaan</span>
-                </h3>
-                <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-        <div id="detail-content" class="p-6"></div>
     </div>
 </div>
 
 <script>
 const BASE_URL = '<?= base_url() ?>';
+let pemeriksaanCounter = 1;
 
-// Search variables
-let searchTimeout;
-let currentSearch = '';
-let totalRequests = <?= $total_requests ?? count($requests ?? []) ?>;
+// Sub Pemeriksaan Map
+const subPemeriksaanMap = {
+    'Kimia Darah': [
+        {id: 'gula_darah_sewaktu', label: 'Gula Darah Sewaktu (GDS)'},
+        {id: 'gula_darah_puasa', label: 'Gula Darah Puasa (GDP)'},
+        {id: 'gula_darah_2jam_pp', label: 'Gula Darah 2 Jam PP (GD2PP)'},
+        {id: 'cholesterol_total', label: 'Cholesterol Total'},
+        {id: 'cholesterol_hdl', label: 'Cholesterol HDL'},
+        {id: 'cholesterol_ldl', label: 'Cholesterol LDL'},
+        {id: 'trigliserida', label: 'Trigliserida'},
+        {id: 'asam_urat', label: 'Asam Urat'},
+        {id: 'ureum', label: 'Ureum'},
+        {id: 'creatinin', label: 'Creatinin'},
+        {id: 'sgpt', label: 'SGPT'},
+        {id: 'sgot', label: 'SGOT'}
+    ],
+    'Hematologi': [
+        {id: 'paket_darah_rutin', label: 'Paket Darah Rutin'},
+        {id: 'laju_endap_darah', label: 'Laju Endap Darah'},
+        {id: 'clotting_time', label: 'Clotting Time'},
+        {id: 'bleeding_time', label: 'Bleeding Time'},
+        {id: 'golongan_darah', label: 'Golongan Darah + Rhesus'},
+        {id: 'malaria', label: 'Malaria'}
+    ],
+    'Urinologi': [
+        {id: 'urin_rutin', label: 'Urin Rutin'},
+        {id: 'protein', label: 'Protein'},
+        {id: 'tes_kehamilan', label: 'Tes Kehamilan'}
+    ],
+    'Serologi': [
+        {id: 'rdt_antigen', label: 'RDT Antigen'},
+        {id: 'widal', label: 'Widal'},
+        {id: 'hbsag', label: 'HBsAg'},
+        {id: 'ns1', label: 'NS1'},
+        {id: 'hiv', label: 'HIV'}
+    ],
+    'IMS': [
+        {id: 'sifilis', label: 'Sifilis'},
+        {id: 'duh_tubuh', label: 'Duh Tubuh'}
+    ],
+    'TBC': [
+        {id: 'dahak', label: 'Dahak'},
+        {id: 'tcm', label: 'TCM'}
+    ]
+};
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();
+});
+
+// Toggle field obat
+function toggleObatField() {
+    const status = document.getElementById('status_pasien').value;
+    const container = document.getElementById('obat-container');
+    const input = document.getElementById('keterangan_obat');
     
-    // Auto-hide flash messages
-    setTimeout(() => {
-        const flashMessages = document.querySelectorAll('#flash-messages > div');
-        flashMessages.forEach(msg => {
-            msg.style.transition = 'opacity 0.5s';
-            msg.style.opacity = '0';
-            setTimeout(() => msg.remove(), 500);
+    if (status === 'minum_obat') {
+        container.classList.remove('hidden');
+        input.required = true;
+    } else {
+        container.classList.add('hidden');
+        input.required = false;
+        input.value = '';
+    }
+}
+
+// Toggle sampel lain
+function toggleSampelLain() {
+    const checkbox = document.querySelector('input[value="lain"]');
+    const container = document.getElementById('sampel-lain-container');
+    
+    if (checkbox.checked) {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+// Load sub pemeriksaan
+function loadSubPemeriksaan(select, rowNum) {
+    const jenis = select.value;
+    const container = document.getElementById(`sub-pemeriksaan-${rowNum}`);
+    const checkboxContainer = document.getElementById(`sub-pemeriksaan-checkboxes-${rowNum}`);
+    
+    if (jenis && subPemeriksaanMap[jenis]) {
+        container.classList.remove('hidden');
+        checkboxContainer.innerHTML = '';
+        
+        subPemeriksaanMap[jenis].forEach(sub => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center';
+            div.innerHTML = `
+                <input type="checkbox" 
+                       name="sub_pemeriksaan_${rowNum}[]" 
+                       value="${sub.id}"
+                       class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                <label class="ml-2 text-sm text-gray-700">${sub.label}</label>
+            `;
+            checkboxContainer.appendChild(div);
         });
-    }, 5000);
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+// Add pemeriksaan
+function addPemeriksaan() {
+    pemeriksaanCounter++;
+    const container = document.getElementById('pemeriksaan-container');
     
-    // Check URL parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchParam = urlParams.get('search');
-    if (searchParam) {
-        document.getElementById('search-input').value = searchParam;
-        currentSearch = searchParam;
-        filterTable();
+    const newRow = document.createElement('div');
+    newRow.className = 'pemeriksaan-row';
+    newRow.setAttribute('data-row', pemeriksaanCounter);
+    newRow.innerHTML = `
+        <div class="flex items-start space-x-3">
+            <div class="flex-1">
+                <select name="jenis_pemeriksaan[]" class="jenis-pemeriksaan-select w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                        required onchange="loadSubPemeriksaan(this, ${pemeriksaanCounter})">
+                    <option value="">-- Pilih Jenis Pemeriksaan --</option>
+                    <option value="Kimia Darah">Kimia Darah</option>
+                    <option value="Hematologi">Hematologi</option>
+                    <option value="Urinologi">Urinologi</option>
+                    <option value="Serologi">Serologi</option>
+                    <option value="TBC">TBC</option>
+                    <option value="IMS">IMS</option>
+                </select>
+                
+                <div id="sub-pemeriksaan-${pemeriksaanCounter}" class="mt-3 hidden">
+                    <label class="block text-sm font-medium text-gray-600 mb-2">Sub Pemeriksaan (Opsional)</label>
+                    <div id="sub-pemeriksaan-checkboxes-${pemeriksaanCounter}" class="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3"></div>
+                </div>
+            </div>
+            
+            <button type="button" class="remove-btn mt-2 p-2 text-red-600 hover:bg-red-50 rounded-lg" 
+                    onclick="removePemeriksaan(${pemeriksaanCounter})">
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
+            </button>
+        </div>
+    `;
+    
+    container.appendChild(newRow);
+    lucide.createIcons();
+}
+
+// Remove pemeriksaan
+function removePemeriksaan(rowNum) {
+    const rows = document.querySelectorAll('.pemeriksaan-row');
+    if (rows.length > 1) {
+        const row = document.querySelector(`[data-row="${rowNum}"]`);
+        if (row) {
+            row.remove();
+        }
+    } else {
+        alert('Minimal harus ada 1 jenis pemeriksaan');
+    }
+}
+
+// Submit form
+document.getElementById('create-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Validasi minimal 1 sampel
+    const sampelChecked = document.querySelectorAll('input[name="sampel[]"]:checked');
+    if (sampelChecked.length === 0) {
+        alert('Pilih minimal 1 jenis sampel');
+        return;
+    }
+    
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    
+    try {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 loading"></i> Menyimpan...';
+        lucide.createIcons();
+        
+        const formData = new FormData(this);
+        
+        const response = await fetch(BASE_URL + 'administrasi/examination_request', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if(result.success) {
+            showFlashMessage('success', result.message);
+            closeCreateModal();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showFlashMessage('error', result.message || 'Gagal membuat permintaan pemeriksaan');
+        }
+    } catch(error) {
+        console.error('Error:', error);
+        showFlashMessage('error', 'Terjadi kesalahan jaringan');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        lucide.createIcons();
     }
 });
 
-// Search with debouncing
-function searchExaminations() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        const searchValue = document.getElementById('search-input').value.trim();
-        
-        if (searchValue.length > 0 && searchValue.length < 2) {
-            return;
-        }
-        
-        currentSearch = searchValue;
-        filterTable();
-    }, 500);
-}
-
-// Filter table
-function filterTable() {
-    const searchTerm = currentSearch.toLowerCase();
-    const tbody = document.getElementById('requests-table-body');
-    const rows = tbody.querySelectorAll('.examination-row');
-    let visibleCount = 0;
-    
-    rows.forEach(row => {
-        const examNumber = row.querySelector('.exam-number').textContent.toLowerCase();
-        const patientName = row.querySelector('.patient-name').textContent.toLowerCase();
-        const patientNik = row.querySelector('.patient-nik').textContent.toLowerCase();
-        const examType = row.querySelector('.exam-type').textContent.toLowerCase();
-        
-        const match = examNumber.includes(searchTerm) || 
-                     patientName.includes(searchTerm) || 
-                     patientNik.includes(searchTerm) ||
-                     examType.includes(searchTerm);
-        
-        if (match) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
-    });
-    
-    updateResultCount(visibleCount);
-    showSearchInfo(visibleCount);
-    showEmptyState(visibleCount === 0 && rows.length > 0);
-}
-
-// Update count
-function updateResultCount(count) {
-    const countElement = document.getElementById('request-count');
-    if (countElement) {
-        countElement.textContent = `${count} permintaan`;
-    }
-}
-
-// Show search info
-function showSearchInfo(count) {
-    const searchInfo = document.getElementById('search-info');
-    const searchText = document.getElementById('search-result-text');
-    
-    if (currentSearch) {
-        searchInfo.classList.remove('hidden');
-        searchText.textContent = `Ditemukan ${count} hasil untuk "${currentSearch}"`;
-    } else {
-        searchInfo.classList.add('hidden');
-    }
-}
-
-// Show empty state
-function showEmptyState(show) {
-    const tbody = document.getElementById('requests-table-body');
-    let emptyRow = tbody.querySelector('.search-empty-state');
-    const defaultEmpty = tbody.querySelector('#empty-state-default');
-    
-    if (defaultEmpty) {
-        defaultEmpty.style.display = show ? 'none' : '';
-    }
-    
-    if (show && !emptyRow) {
-        emptyRow = document.createElement('tr');
-        emptyRow.className = 'search-empty-state';
-        emptyRow.innerHTML = `
-            <td colspan="7" class="px-6 py-16 text-center text-gray-500">
-                <div class="flex flex-col items-center space-y-4">
-                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
-                        <i data-lucide="search-x" class="w-12 h-12 text-gray-300"></i>
-                    </div>
-                    <div>
-                        <span class="text-lg font-medium block mb-1">Tidak ada hasil ditemukan</span>
-                        <span class="text-sm text-gray-400">Coba kata kunci lain atau reset pencarian</span>
-                    </div>
-                    <button onclick="resetSearch()" 
-                       class="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        <span>Reset Pencarian</span>
-                    </button>
-                </div>
-            </td>
-        `;
-        tbody.appendChild(emptyRow);
-        lucide.createIcons();
-    } else if (!show && emptyRow) {
-        emptyRow.remove();
-    }
-}
-
-// Reset search
-function resetSearch() {
-    document.getElementById('search-input').value = '';
-    currentSearch = '';
-    filterTable();
-}
-
-// Modal functions
 function openCreateModal() {
     document.getElementById('create-modal').classList.remove('hidden');
     document.getElementById('create-form').reset();
+    
+    // Reset pemeriksaan rows
+    const container = document.getElementById('pemeriksaan-container');
+    const rows = container.querySelectorAll('.pemeriksaan-row');
+    rows.forEach((row, index) => {
+        if (index > 0) row.remove();
+    });
+    pemeriksaanCounter = 1;
+    
     lucide.createIcons();
 }
 
@@ -709,268 +731,15 @@ function closeCreateModal() {
     document.getElementById('create-modal').classList.add('hidden');
 }
 
-function closeEditModal() {
-    document.getElementById('edit-modal').classList.add('hidden');
-}
-
-function closeDetailModal() {
-    document.getElementById('detail-modal').classList.add('hidden');
-}
-
-// Create form submit
-document.getElementById('create-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    
-    try {
-        const response = await fetch(BASE_URL + 'administrasi/examination_request', {
-            method: 'POST',
-            body: formData
-        });
-        
-        if(response.ok) {
-            showFlashMessage('success', 'Permintaan pemeriksaan berhasil dibuat');
-            closeCreateModal();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showFlashMessage('error', 'Gagal membuat permintaan pemeriksaan');
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat membuat permintaan');
-    }
-});
-
-// Edit examination
-async function editExamination(examId) {
-    document.getElementById('edit-modal').classList.remove('hidden');
-    document.getElementById('edit-pemeriksaan-id').value = examId;
-    
-    try {
-        const response = await fetch(BASE_URL + `administrasi/get_examination_data/${examId}`);
-        const data = await response.json();
-        
-        if(data.success) {
-            document.getElementById('edit-pasien-id').value = data.examination.pasien_id;
-            document.getElementById('edit-jenis-pemeriksaan').value = data.examination.jenis_pemeriksaan;
-            document.getElementById('edit-tanggal-pemeriksaan').value = data.examination.tanggal_pemeriksaan;
-            document.getElementById('edit-biaya').value = data.examination.biaya;
-            document.getElementById('edit-keterangan').value = data.examination.keterangan || '';
-        } else {
-            showFlashMessage('error', 'Gagal memuat data pemeriksaan');
-            closeEditModal();
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat memuat data');
-        closeEditModal();
-    }
-    
-    lucide.createIcons();
-}
-
-// Edit form submit
-document.getElementById('edit-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const examId = document.getElementById('edit-pemeriksaan-id').value;
-    const formData = new FormData(this);
-    
-    try {
-        const response = await fetch(BASE_URL + `administrasi/edit_examination/${examId}`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if(response.ok) {
-            showFlashMessage('success', 'Permintaan pemeriksaan berhasil diperbarui');
-            closeEditModal();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showFlashMessage('error', 'Gagal memperbarui permintaan pemeriksaan');
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat memperbarui data');
-    }
-});
-
-// View detail
-async function viewRequestDetail(examId) {
-    document.getElementById('detail-content').innerHTML = `
-        <div class="flex justify-center py-8">
-            <i data-lucide="loader-2" class="w-8 h-8 text-blue-600 loading"></i>
-        </div>
-    `;
-    
-    document.getElementById('detail-modal').classList.remove('hidden');
-    lucide.createIcons();
-    
-    try {
-        const response = await fetch(BASE_URL + `administrasi/get_examination_data/${examId}`);
-        const data = await response.json();
-        
-        if(data.success) {
-            const exam = data.examination;
-            const statusConfig = {
-                'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
-                'progress': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Progress' },
-                'selesai': { bg: 'bg-green-100', text: 'text-green-800', label: 'Selesai' }
-            };
-            const status = statusConfig[exam.status_pemeriksaan] || statusConfig['pending'];
-            
-            document.getElementById('detail-content').innerHTML = `
-                <div class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="text-sm font-semibold text-blue-900 mb-3 flex items-center">
-                                <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
-                                Informasi Pemeriksaan
-                            </h4>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">No. Pemeriksaan:</span>
-                                    <span class="font-medium text-gray-900">${exam.nomor_pemeriksaan}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Jenis Pemeriksaan:</span>
-                                    <span class="font-medium text-gray-900">${exam.jenis_pemeriksaan}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Tanggal:</span>
-                                    <span class="font-medium text-gray-900">${new Date(exam.tanggal_pemeriksaan).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Status:</span>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.text}">
-                                        ${status.label}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <h4 class="text-sm font-semibold text-green-900 mb-3 flex items-center">
-                                <i data-lucide="user" class="w-4 h-4 mr-2"></i>
-                                Informasi Pasien
-                            </h4>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Nama:</span>
-                                    <span class="font-medium text-gray-900">${exam.nama_pasien}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">NIK:</span>
-                                    <span class="font-medium text-gray-900">${exam.nik}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">No. Registrasi:</span>
-                                    <span class="font-medium text-gray-900">${exam.nomor_registrasi}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-purple-50 p-4 rounded-lg">
-                        <h4 class="text-sm font-semibold text-purple-900 mb-3 flex items-center">
-                            <i data-lucide="dollar-sign" class="w-4 h-4 mr-2"></i>
-                            Biaya Pemeriksaan
-                        </h4>
-                        <div class="text-2xl font-bold text-purple-900">
-                            Rp ${parseInt(exam.biaya).toLocaleString('id-ID')}
-                        </div>
-                    </div>
-                    
-                    ${exam.keterangan ? `
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                            <i data-lucide="message-square" class="w-4 h-4 mr-2"></i>
-                            Keterangan
-                        </h4>
-                        <p class="text-sm text-gray-700">${exam.keterangan}</p>
-                    </div>
-                    ` : ''}
-                    
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                            <i data-lucide="clock" class="w-4 h-4 mr-2"></i>
-                            Riwayat
-                        </h4>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Dibuat:</span>
-                                <span class="text-gray-900">${new Date(exam.created_at).toLocaleString('id-ID')}</span>
-                            </div>
-                            ${exam.updated_at ? `
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Terakhir Diupdate:</span>
-                                <span class="text-gray-900">${new Date(exam.updated_at).toLocaleString('id-ID')}</span>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            document.getElementById('detail-content').innerHTML = `
-                <div class="text-center py-8 text-red-600">
-                    <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-3"></i>
-                    <p>Gagal memuat data pemeriksaan</p>
-                </div>
-            `;
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        document.getElementById('detail-content').innerHTML = `
-            <div class="text-center py-8 text-red-600">
-                <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-3"></i>
-                <p>Terjadi kesalahan saat memuat data</p>
-            </div>
-        `;
-    }
-    
-    lucide.createIcons();
-}
-
-// Update status
-async function updateStatus(examId, status) {
-    if (!confirm('Apakah Anda yakin ingin mengubah status pemeriksaan ini?')) {
-        return;
-    }
-    
-    try {
-        const formData = new FormData();
-        formData.append('status', status);
-        
-        const response = await fetch(BASE_URL + `administrasi/update_examination_status/${examId}`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if(response.ok) {
-            showFlashMessage('success', 'Status pemeriksaan berhasil diperbarui');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showFlashMessage('error', 'Gagal memperbarui status pemeriksaan');
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat memperbarui status');
-    }
-}
-
-// Flash message
 function showFlashMessage(type, message) {
     const container = document.getElementById('flash-messages');
     const alertClass = type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800';
     const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
-    const iconClass = type === 'success' ? 'text-green-600' : 'text-red-600';
     
     const alert = document.createElement('div');
     alert.className = `${alertClass} border rounded-lg p-4 flex items-center space-x-3 fade-in`;
     alert.innerHTML = `
-        <i data-lucide="${iconName}" class="w-5 h-5 ${iconClass}"></i>
+        <i data-lucide="${iconName}" class="w-5 h-5"></i>
         <span>${message}</span>
         <button onclick="this.parentElement.remove()" class="ml-auto text-gray-400 hover:text-gray-600">
             <i data-lucide="x" class="w-4 h-4"></i>
@@ -981,28 +750,10 @@ function showFlashMessage(type, message) {
     lucide.createIcons();
     
     setTimeout(() => {
-        if (alert.parentElement) {
-            alert.remove();
-        }
+        alert.style.opacity = '0';
+        setTimeout(() => alert.remove(), 500);
     }, 5000);
 }
-
-// ESC key & backdrop close
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeCreateModal();
-        closeEditModal();
-        closeDetailModal();
-    }
-});
-
-['create-modal', 'edit-modal', 'detail-modal'].forEach(modalId => {
-    document.getElementById(modalId).addEventListener('click', function(e) {
-        if (e.target === this) {
-            eval(`close${modalId.split('-')[0].charAt(0).toUpperCase() + modalId.split('-')[0].slice(1)}Modal()`);
-        }
-    });
-});
 </script>
 
 </body>

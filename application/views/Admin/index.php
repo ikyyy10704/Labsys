@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($title) ? $title : 'Dashboard Admin'; ?> - Labsys</title>
+    <title><?php echo isset($title) ? $title : 'Dashboard Admin'; ?> - Labsy</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -270,125 +270,104 @@
 
 <!-- Main Content -->
 <div class="p-6 space-y-6">
-
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+<!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <!-- Total Pemeriksaan -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="kpi-card-1">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-1">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Total Pemeriksaan</p>
-                    <p id="kpi-total-exams" class="text-2xl font-bold text-gray-900">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-600 mb-2">Total Pemeriksaan</p>
+                    <p id="kpi-total-exams" class="text-3xl font-bold text-gray-900 mb-1">
                         <?php if (isset($dashboard_data['kpi']['total_examinations'])): ?>
                             <?php echo number_format($dashboard_data['kpi']['total_examinations']); ?>
                         <?php else: ?>
-                            <span class="skeleton rounded w-12 h-8 inline-block"></span>
+                            <span class="skeleton rounded w-16 h-9 inline-block"></span>
                         <?php endif; ?>
                     </p>
-                    <p class="text-xs text-gray-500 mt-1">30 hari terakhir</p>
+                    <p class="text-xs text-gray-500">30 hari terakhir</p>
                 </div>
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="clipboard-check" class="w-6 h-6 text-blue-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Pemeriksaan Selesai -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="kpi-card-2">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Selesai</p>
-                    <p id="kpi-completed" class="text-2xl font-bold text-green-600">
-                        <?php if (isset($dashboard_data['kpi']['completed_today'])): ?>
-                            <?php echo number_format($dashboard_data['kpi']['completed_today']); ?>
-                        <?php else: ?>
-                            <span class="skeleton rounded w-10 h-8 inline-block"></span>
-                        <?php endif; ?>
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">Hari ini</p>
-                </div>
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>
+                <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <i data-lucide="clipboard-check" class="w-7 h-7 text-blue-600"></i>
                 </div>
             </div>
         </div>
         
         <!-- Pemeriksaan Pending -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="kpi-card-3">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-3">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Pending</p>
-                    <p id="kpi-pending" class="text-2xl font-bold text-yellow-600">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-600 mb-2">Pending</p>
+                    <p id="kpi-pending" class="text-3xl font-bold text-yellow-600 mb-1">
                         <?php if (isset($dashboard_data['kpi']['pending_today'])): ?>
                             <?php echo number_format($dashboard_data['kpi']['pending_today']); ?>
                         <?php else: ?>
-                            <span class="skeleton rounded w-8 h-8 inline-block"></span>
+                            <span class="skeleton rounded w-12 h-9 inline-block"></span>
                         <?php endif; ?>
                     </p>
-                    <p class="text-xs text-gray-500 mt-1">Menunggu proses</p>
+                    <p class="text-xs text-gray-500">Menunggu proses</p>
                 </div>
-                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="clock" class="w-6 h-6 text-yellow-600"></i>
+                <div class="w-14 h-14 bg-yellow-100 rounded-xl flex items-center justify-center">
+                    <i data-lucide="clock" class="w-7 h-7 text-yellow-600"></i>
                 </div>
             </div>
         </div>
         
         <!-- Total Pendapatan -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="kpi-card-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-4">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Pendapatan</p>
-                    <p id="kpi-revenue" class="text-2xl font-bold text-emerald-600">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-600 mb-2">Pendapatan</p>
+                    <p id="kpi-revenue" class="text-2xl font-bold text-emerald-600 mb-1">
                         <?php if (isset($dashboard_data['kpi']['monthly_revenue'])): ?>
                             <?php echo 'Rp ' . number_format($dashboard_data['kpi']['monthly_revenue'], 0, ',', '.'); ?>
                         <?php else: ?>
-                            <span class="skeleton rounded w-20 h-8 inline-block"></span>
+                            <span class="skeleton rounded w-24 h-8 inline-block"></span>
                         <?php endif; ?>
                     </p>
-                    <p class="text-xs text-gray-500 mt-1">Bulan ini</p>
+                    <p class="text-xs text-gray-500">Bulan ini</p>
                 </div>
-                <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="dollar-sign" class="w-6 h-6 text-emerald-600"></i>
+                <div class="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center">
+                    <i data-lucide="dollar-sign" class="w-7 h-7 text-emerald-600"></i>
                 </div>
             </div>
         </div>
         
         <!-- Users Aktif -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="kpi-card-5">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-5">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Users Aktif</p>
-                    <p id="kpi-active-users" class="text-2xl font-bold text-purple-600">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-600 mb-2">Users Aktif</p>
+                    <p id="kpi-active-users" class="text-3xl font-bold text-purple-600 mb-1">
                         <?php if (isset($dashboard_data['kpi']['active_users'])): ?>
                             <?php echo number_format($dashboard_data['kpi']['active_users']); ?>
                         <?php else: ?>
-                            <span class="skeleton rounded w-8 h-8 inline-block"></span>
+                            <span class="skeleton rounded w-12 h-9 inline-block"></span>
                         <?php endif; ?>
                     </p>
-                    <p class="text-xs text-gray-500 mt-1">Total pengguna</p>
+                    <p class="text-xs text-gray-500">Total pengguna</p>
                 </div>
-                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="users" class="w-6 h-6 text-purple-600"></i>
+                <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <i data-lucide="users" class="w-7 h-7 text-purple-600"></i>
                 </div>
             </div>
         </div>
         
         <!-- Alert Items -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="kpi-card-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-6">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Alert Items</p>
-                    <p id="kpi-alerts" class="text-2xl font-bold text-red-600">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-600 mb-2">Alert Items</p>
+                    <p id="kpi-alerts" class="text-3xl font-bold text-red-600 mb-1">
                         <?php if (isset($dashboard_data['kpi']['alert_items'])): ?>
                             <?php echo number_format($dashboard_data['kpi']['alert_items']); ?>
                         <?php else: ?>
-                            <span class="skeleton rounded w-6 h-8 inline-block"></span>
+                            <span class="skeleton rounded w-10 h-9 inline-block"></span>
                         <?php endif; ?>
                     </p>
-                    <p class="text-xs text-gray-500 mt-1">Perlu perhatian</p>
+                    <p class="text-xs text-gray-500">Perlu perhatian</p>
                 </div>
-                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>
+                <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="w-7 h-7 text-red-600"></i>
                 </div>
             </div>
         </div>

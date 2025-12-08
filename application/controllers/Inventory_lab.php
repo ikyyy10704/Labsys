@@ -787,136 +787,6 @@ public function ajax_get_calibration_schedule()
     }
 }
 
-/**
- * AJAX: Save calibration
- */
-public function ajax_save_calibration()
-{
-    $this->output->set_content_type('application/json');
-    
-    if ($this->input->method() !== 'post') {
-        $this->output->set_output(json_encode(array(
-            'success' => false,
-            'message' => 'Method not allowed'
-        )));
-        return;
-    }
-    
-    try {
-        $alat_id = $this->input->post('alat_id');
-        $mode = $this->input->post('mode');
-        
-        if (empty($alat_id) || !is_numeric($alat_id)) {
-            $this->output->set_output(json_encode(array(
-                'success' => false,
-                'message' => 'Parameter tidak lengkap'
-            )));
-            return;
-        }
-        
-        if ($mode === 'schedule') {
-            $tanggal_kalibrasi = $this->input->post('tanggal_kalibrasi');
-            $catatan = $this->input->post('catatan');
-            
-            $update_data = array(
-                'jadwal_kalibrasi' => $tanggal_kalibrasi,
-                'status_alat' => 'Perlu Kalibrasi',
-                'updated_at' => date('Y-m-d H:i:s')
-            );
-            
-            if (!empty($catatan)) {
-                $update_data['riwayat_perbaikan'] = $catatan;
-            }
-            
-            $success = $this->Inventory_lab_model->update_alat($alat_id, $update_data);
-            
-            if ($success) {
-                $alat = $this->Inventory_lab_model->get_alat_by_id($alat_id);
-                $this->Admin_model->log_activity(
-                    $this->session->userdata('user_id'),
-                    "Kalibrasi dijadwalkan untuk {$alat['nama_alat']}",
-                    'alat_laboratorium',
-                    $alat_id
-                );
-                
-                $this->output->set_output(json_encode(array(
-                    'success' => true,
-                    'message' => 'Jadwal kalibrasi berhasil disimpan'
-                )));
-            } else {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'Gagal menjadwalkan kalibrasi'
-                )));
-            }
-            
-        } elseif ($mode === 'complete') {
-            $tanggal_kalibrasi = $this->input->post('tanggal_kalibrasi');
-            $hasil_kalibrasi = $this->input->post('hasil_kalibrasi');
-            $teknisi = $this->input->post('teknisi');
-            $catatan = $this->input->post('catatan');
-            
-            // Calculate next calibration (1 year later)
-            $next_calibration = date('Y-m-d', strtotime($tanggal_kalibrasi . ' +1 year'));
-            
-            // Save to calibration_history
-            $history_data = array(
-                'alat_id' => $alat_id,
-                'tanggal_kalibrasi' => $tanggal_kalibrasi,
-                'hasil_kalibrasi' => $hasil_kalibrasi,
-                'teknisi' => $teknisi,
-                'catatan' => $catatan,
-                'next_calibration_date' => $next_calibration,
-                'user_id' => $this->session->userdata('user_id'),
-                'created_at' => date('Y-m-d H:i:s')
-            );
-            
-            $this->Inventory_lab_model->save_calibration($history_data);
-            
-            // Update alat
-            $update_data = array(
-                'tanggal_kalibrasi_terakhir' => $tanggal_kalibrasi,
-                'jadwal_kalibrasi' => $next_calibration,
-                'status_alat' => 'Normal',
-                'updated_at' => date('Y-m-d H:i:s')
-            );
-            
-            $success = $this->Inventory_lab_model->update_alat($alat_id, $update_data);
-            
-            if ($success) {
-                $alat = $this->Inventory_lab_model->get_alat_by_id($alat_id);
-                $this->Admin_model->log_activity(
-                    $this->session->userdata('user_id'),
-                    "Kalibrasi {$alat['nama_alat']} selesai",
-                    'alat_laboratorium',
-                    $alat_id
-                );
-                
-                $this->output->set_output(json_encode(array(
-                    'success' => true,
-                    'message' => 'Kalibrasi berhasil diselesaikan'
-                )));
-            } else {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'Gagal menyelesaikan kalibrasi'
-                )));
-            }
-        } else {
-            $this->output->set_output(json_encode(array(
-                'success' => false,
-                'message' => 'Mode tidak valid'
-            )));
-        }
-        
-    } catch (Exception $e) {
-        log_message('error', 'Error in ajax_save_calibration: ' . $e->getMessage());
-        $this->output->set_output(json_encode(array(
-            'success' => false,
-            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-        )));
-    }
-}
 public function ajax_get_calibration_history($alat_id)
 {
     $this->output->set_content_type('application/json');
@@ -978,6 +848,144 @@ public function ajax_get_calibration_history($alat_id)
             'success' => false,
             'message' => 'Gagal memuat riwayat kalibrasi',
             'error_detail' => $e->getMessage()
+        )));
+    }
+}
+public function ajax_save_calibration()
+{
+    $this->output->set_content_type('application/json');
+    
+    if ($this->input->method() !== 'post') {
+        $this->output->set_output(json_encode(array(
+            'success' => false,
+            'message' => 'Method not allowed'
+        )));
+        return;
+    }
+    
+    try {
+        $alat_id = $this->input->post('alat_id');
+        $mode = $this->input->post('mode');
+        $tanggal_kalibrasi = $this->input->post('tanggal_kalibrasi');
+        
+        // Debug log
+        log_message('debug', 'Calibration save - alat_id: ' . $alat_id . ', mode: ' . $mode);
+        
+        // Validasi dasar
+        if (empty($alat_id) || !is_numeric($alat_id)) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'ID Alat tidak valid'
+            )));
+            return;
+        }
+        
+        if (empty($mode) || !in_array($mode, ['schedule', 'complete'])) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Mode tidak valid: ' . $mode
+            )));
+            return;
+        }
+        
+        if (empty($tanggal_kalibrasi)) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Tanggal kalibrasi harus diisi'
+            )));
+            return;
+        }
+        
+        // Validasi alat exists
+        $alat = $this->Inventory_lab_model->get_alat_by_id($alat_id);
+        if (!$alat) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Alat tidak ditemukan'
+            )));
+            return;
+        }
+        
+        if ($mode === 'schedule') {
+            // MODE: Jadwalkan Kalibrasi
+            $catatan = $this->input->post('catatan');
+            
+            $success = $this->Inventory_lab_model->schedule_calibration($alat_id, $tanggal_kalibrasi, $catatan);
+            
+            if ($success) {
+                $this->Admin_model->log_activity(
+                    $this->session->userdata('user_id'),
+                    "Kalibrasi dijadwalkan untuk {$alat['nama_alat']} pada " . date('d/m/Y', strtotime($tanggal_kalibrasi)),
+                    'alat_laboratorium',
+                    $alat_id
+                );
+                
+                $this->output->set_output(json_encode(array(
+                    'success' => true,
+                    'message' => 'Jadwal kalibrasi berhasil disimpan untuk tanggal ' . date('d/m/Y', strtotime($tanggal_kalibrasi))
+                )));
+            } else {
+                $this->output->set_output(json_encode(array(
+                    'success' => false,
+                    'message' => 'Gagal menjadwalkan kalibrasi'
+                )));
+            }
+            
+        } elseif ($mode === 'complete') {
+            // MODE: Selesaikan Kalibrasi
+            $hasil_kalibrasi = $this->input->post('hasil_kalibrasi');
+            $teknisi = $this->input->post('teknisi');
+            $catatan = $this->input->post('catatan');
+            $next_calibration_custom = $this->input->post('next_calibration_date');
+            
+            // Calculate next calibration date
+            if (!empty($next_calibration_custom)) {
+                $next_calibration = $next_calibration_custom;
+            } else {
+                $next_calibration = date('Y-m-d', strtotime($tanggal_kalibrasi . ' +1 year'));
+            }
+            
+            // Prepare calibration history data
+            $history_data = array(
+                'alat_id' => $alat_id,
+                'tanggal_kalibrasi' => $tanggal_kalibrasi,
+                'hasil_kalibrasi' => !empty($hasil_kalibrasi) ? $hasil_kalibrasi : 'Passed',
+                'teknisi' => $teknisi,
+                'catatan' => $catatan,
+                'next_calibration_date' => $next_calibration,
+                'status' => !empty($hasil_kalibrasi) ? $hasil_kalibrasi : 'Passed',
+                'user_id' => $this->session->userdata('user_id'),
+                'created_at' => date('Y-m-d H:i:s')
+            );
+            
+            $calibration_id = $this->Inventory_lab_model->save_calibration($history_data);
+            
+            if ($calibration_id) {
+                $this->Admin_model->log_activity(
+                    $this->session->userdata('user_id'),
+                    "Kalibrasi {$alat['nama_alat']} selesai. Jadwal berikutnya: " . date('d/m/Y', strtotime($next_calibration)),
+                    'alat_laboratorium',
+                    $alat_id
+                );
+                
+                $this->output->set_output(json_encode(array(
+                    'success' => true,
+                    'message' => 'Kalibrasi berhasil diselesaikan. Jadwal berikutnya: ' . date('d/m/Y', strtotime($next_calibration)),
+                    'next_calibration' => $next_calibration
+                )));
+            } else {
+                $this->output->set_output(json_encode(array(
+                    'success' => false,
+                    'message' => 'Gagal menyelesaikan kalibrasi'
+                )));
+            }
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error in ajax_save_calibration: ' . $e->getMessage());
+        $this->output->set_output(json_encode(array(
+            'success' => false,
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
         )));
     }
 }

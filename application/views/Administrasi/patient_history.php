@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riwayat Pasien - Labsys</title>
+    <title>Riwayat Pasien - LabSy</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -61,11 +61,6 @@
             </div>
         </div>
         <div class="flex items-center space-x-4">
-            <a href="<?= base_url('administrasi/add_patient_data') ?>" 
-               class="bg-white hover:bg-gray-100 text-blue-600 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 shadow-sm">
-                <i data-lucide="user-plus" class="w-4 h-4"></i>
-                <span>Tambah Pasien</span>
-            </a>
             <button onclick="exportPatients()" class="bg-white hover:bg-gray-100 text-blue-600 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 shadow-sm">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
                 <span>Export Data</span>

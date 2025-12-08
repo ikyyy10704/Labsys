@@ -602,7 +602,7 @@
     <?php endif; ?>
     
     <!-- Watermark -->
-    <div class="watermark no-print">LABSYS</div>
+    <div class="watermark no-print">LabSy</div>
     
     <div class="print-container">
         <!-- Professional Header with Logo -->
@@ -626,11 +626,11 @@
                         </div>
                         <div class="contact-item">
                             <span>📧</span>
-                            <span><?php echo isset($lab_info) ? $lab_info['email'] : 'info@labsys.com'; ?></span>
+                            <span><?php echo isset($lab_info) ? $lab_info['email'] : 'info@Labsy.com'; ?></span>
                         </div>
                         <div class="contact-item">
                             <span>🌐</span>
-                            <span>www.labsys.com</span>
+                            <span>www.LabSy.com</span>
                         </div>
                     </div>
                 </div>
@@ -752,8 +752,8 @@
                             endif;
                         endforeach;
                     
-                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'hematologi'):
-                        // Hematologi parameters
+                     elseif (strtolower($examination['jenis_pemeriksaan']) == 'hematologi'):
+                        // Hematologi parameters - DIPERBARUI dengan field baru
                         if (isset($results['hemoglobin']) && $results['hemoglobin'] !== null):
                             $hb_min = ($examination['jenis_kelamin'] == 'L') ? 14.0 : 12.0;
                             $hb_max = ($examination['jenis_kelamin'] == 'L') ? 18.0 : 16.0;
@@ -811,6 +811,145 @@
                     </tr>
                     <?php endif;
                         
+                        // FIELD BARU HEMATOLOGI: Leukosit
+                        if (isset($results['leukosit']) && $results['leukosit'] !== null):
+                            $is_normal = ($results['leukosit'] >= 4.0 && $results['leukosit'] <= 10.0);
+                    ?>
+                    <tr>
+                        <td><strong>Leukosit</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['leukosit']; ?> x10^3/µL</strong></td>
+                        <td style="text-align: center;">4.0 - 10.0 x10^3/µL</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['leukosit'] > 10.0 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['leukosit'] > 10.0 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: Trombosit
+                        if (isset($results['trombosit']) && $results['trombosit'] !== null):
+                            $is_normal = ($results['trombosit'] >= 150 && $results['trombosit'] <= 450);
+                    ?>
+                    <tr>
+                        <td><strong>Trombosit</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['trombosit']; ?> x10^3/µL</strong></td>
+                        <td style="text-align: center;">150 - 450 x10^3/µL</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['trombosit'] > 450 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['trombosit'] > 450 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: Eritrosit
+                        if (isset($results['eritrosit']) && $results['eritrosit'] !== null):
+                            if ($examination['jenis_kelamin'] == 'L') {
+                                $min_eritrosit = 4.5;
+                                $max_eritrosit = 6.0;
+                            } else {
+                                $min_eritrosit = 4.0;
+                                $max_eritrosit = 5.0;
+                            }
+                            $is_normal = ($results['eritrosit'] >= $min_eritrosit && $results['eritrosit'] <= $max_eritrosit);
+                    ?>
+                    <tr>
+                        <td><strong>Eritrosit</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['eritrosit']; ?> x10^6/µL</strong></td>
+                        <td style="text-align: center;"><?php echo $min_eritrosit . ' - ' . $max_eritrosit; ?> x10^6/µL</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['eritrosit'] > $max_eritrosit ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['eritrosit'] > $max_eritrosit ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: MCV
+                        if (isset($results['mcv']) && $results['mcv'] !== null):
+                            $is_normal = ($results['mcv'] >= 80 && $results['mcv'] <= 100);
+                    ?>
+                    <tr>
+                        <td><strong>MCV</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['mcv']; ?> fL</strong></td>
+                        <td style="text-align: center;">80 - 100 fL</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['mcv'] > 100 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['mcv'] > 100 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: MCH
+                        if (isset($results['mch']) && $results['mch'] !== null):
+                            $is_normal = ($results['mch'] >= 27 && $results['mch'] <= 31);
+                    ?>
+                    <tr>
+                        <td><strong>MCH</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['mch']; ?> pg</strong></td>
+                        <td style="text-align: center;">27 - 31 pg</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['mch'] > 31 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['mch'] > 31 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: MCHC
+                        if (isset($results['mchc']) && $results['mchc'] !== null):
+                            $is_normal = ($results['mchc'] >= 32 && $results['mchc'] <= 36);
+                    ?>
+                    <tr>
+                        <td><strong>MCHC</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['mchc']; ?> g/dL</strong></td>
+                        <td style="text-align: center;">32 - 36 g/dL</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['mchc'] > 36 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['mchc'] > 36 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: Eosinofil
+                        if (isset($results['eosinofil']) && $results['eosinofil'] !== null):
+                            $is_normal = ($results['eosinofil'] >= 0 && $results['eosinofil'] <= 5);
+                    ?>
+                    <tr>
+                        <td><strong>Eosinofil</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['eosinofil']; ?> %</strong></td>
+                        <td style="text-align: center;">0 - 5 %</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['eosinofil'] > 5 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['eosinofil'] > 5 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: Basofil
+                        if (isset($results['basofil']) && $results['basofil'] !== null):
+                            $is_normal = ($results['basofil'] >= 0 && $results['basofil'] <= 1);
+                    ?>
+                    <tr>
+                        <td><strong>Basofil</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['basofil']; ?> %</strong></td>
+                        <td style="text-align: center;">0 - 1 %</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['basofil'] > 1 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['basofil'] > 1 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: Neutrofil
+                        if (isset($results['neutrofil']) && $results['neutrofil'] !== null):
+                            $is_normal = ($results['neutrofil'] >= 40 && $results['neutrofil'] <= 75);
+                    ?>
+                    <tr>
+                        <td><strong>Neutrofil</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['neutrofil']; ?> %</strong></td>
+                        <td style="text-align: center;">40 - 75 %</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['neutrofil'] > 75 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['neutrofil'] > 75 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: Limfosit
+                        if (isset($results['limfosit']) && $results['limfosit'] !== null):
+                            $is_normal = ($results['limfosit'] >= 20 && $results['limfosit'] <= 45);
+                    ?>
+                    <tr>
+                        <td><strong>Limfosit</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['limfosit']; ?> %</strong></td>
+                        <td style="text-align: center;">20 - 45 %</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['limfosit'] > 45 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['limfosit'] > 45 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
+                        // FIELD BARU HEMATOLOGI: Monosit
+                        if (isset($results['monosit']) && $results['monosit'] !== null):
+                            $is_normal = ($results['monosit'] >= 2 && $results['monosit'] <= 10);
+                    ?>
+                    <tr>
+                        <td><strong>Monosit</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['monosit']; ?> %</strong></td>
+                        <td style="text-align: center;">2 - 10 %</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : ($results['monosit'] > 10 ? 'status-high' : 'status-low'); ?>"><?php echo $is_normal ? 'Normal' : ($results['monosit'] > 10 ? 'Tinggi' : 'Rendah'); ?></span></td>
+                    </tr>
+                    <?php endif;
+                        
                         if (isset($results['golongan_darah']) && $results['golongan_darah'] !== null): ?>
                     <tr>
                         <td><strong>Golongan Darah</strong></td>
@@ -828,7 +967,7 @@
                     <?php endif;
                     
                     elseif (strtolower($examination['jenis_pemeriksaan']) == 'urinologi'):
-                        // Urinologi parameters
+                        // Urinologi parameters - DIPERBARUI dengan field baru
                         $urin_parameters = array(
                             'warna' => array('name' => 'Warna', 'unit' => '', 'normal' => 'Kuning muda'),
                             'kejernihan' => array('name' => 'Kejernihan', 'unit' => '', 'normal' => 'Jernih'),
@@ -880,6 +1019,87 @@
                     <?php 
                             endif;
                         endforeach;
+                    
+                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'urinologi'):
+                        // Urinologi parameters - DIPERBARUI dengan field baru
+                        $urin_parameters = array(
+                            'warna' => array('name' => 'Warna', 'unit' => '', 'normal' => 'Kuning muda'),
+                            'kejernihan' => array('name' => 'Kejernihan', 'unit' => '', 'normal' => 'Jernih'),
+                            'berat_jenis' => array('name' => 'Berat Jenis', 'unit' => '', 'min' => 1.003, 'max' => 1.030),
+                            'ph' => array('name' => 'pH', 'unit' => '', 'min' => 4.5, 'max' => 8.0),
+                            'protein' => array('name' => 'Protein', 'unit' => '', 'normal' => 'Negatif'),
+                            'glukosa' => array('name' => 'Glukosa', 'unit' => '', 'normal' => 'Negatif'),
+                            'keton' => array('name' => 'Keton', 'unit' => '', 'normal' => 'Negatif'),
+                            'urobilinogen' => array('name' => 'Urobilinogen', 'unit' => '', 'normal' => 'Normal'),
+                            'bilirubin' => array('name' => 'Bilirubin', 'unit' => '', 'normal' => 'Negatif'),
+                            'nitrit' => array('name' => 'Nitrit', 'unit' => '', 'normal' => 'Negatif'),
+                            'leukosit_esterase' => array('name' => 'Leukosit Esterase', 'unit' => '', 'normal' => 'Negatif'),
+                            'eritrosit' => array('name' => 'Eritrosit', 'unit' => '/lpb', 'min' => 0, 'max' => 3),
+                            'leukosit' => array('name' => 'Leukosit', 'unit' => '/lpb', 'min' => 0, 'max' => 5),
+                            'epitel' => array('name' => 'Epitel', 'unit' => '/lpb', 'min' => 0, 'max' => 5),
+                            'bakteri' => array('name' => 'Bakteri', 'unit' => '', 'normal' => 'Sedikit'),
+                            'kristal' => array('name' => 'Kristal', 'unit' => '', 'normal' => 'Negatif'),
+                            'silinder' => array('name' => 'Silinder', 'unit' => '/lpb', 'normal' => 'Negatif')
+                        );
+                        
+                        foreach ($urin_parameters as $key => $param):
+                            if (isset($results[$key]) && $results[$key] !== null && $results[$key] !== ''):
+                                $value = $results[$key];
+                                $reference = '';
+                                
+                                // Determine status
+                                if (isset($param['normal'])) {
+                                    $is_normal = (strtolower($value) == strtolower($param['normal']));
+                                    $status_text = $is_normal ? 'Normal' : 'Abnormal';
+                                    $status_class = $is_normal ? 'status-normal' : 'status-abnormal';
+                                    $reference = $param['normal'];
+                                } elseif (isset($param['min']) && isset($param['max'])) {
+                                    $is_normal = ($value >= $param['min'] && $value <= $param['max']);
+                                    $status_text = $is_normal ? 'Normal' : ($value > $param['max'] ? 'Tinggi' : 'Rendah');
+                                    $status_class = $is_normal ? 'status-normal' : ($value > $param['max'] ? 'status-high' : 'status-low');
+                                    $reference = $param['min'] . ' - ' . $param['max'] . ' ' . $param['unit'];
+                                } else {
+                                    $status_text = 'Normal';
+                                    $status_class = 'status-normal';
+                                    $reference = '-';
+                                }
+                    ?>
+                    <tr>
+                        <td><strong><?php echo $param['name']; ?></strong></td>
+                        <td style="text-align: center;"><strong><?php echo $value . ' ' . $param['unit']; ?></strong></td>
+                        <td style="text-align: center;"><?php echo $reference; ?></td>
+                        <td style="text-align: center;"><span class="<?php echo $status_class; ?>"><?php echo $status_text; ?></span></td>
+                    </tr>
+                    <?php 
+                            endif;
+                        endforeach;
+                        
+                        // Tambahan field khusus urinologi
+                        if (isset($results['makroskopis']) && $results['makroskopis'] !== null && $results['makroskopis'] !== ''): ?>
+                    <tr>
+                        <td><strong>Makroskopis</strong></td>
+                        <td colspan="3" style="text-align: left;"><?php echo htmlspecialchars($results['makroskopis']); ?></td>
+                    </tr>
+                    <?php endif;
+                        
+                        if (isset($results['mikroskopis']) && $results['mikroskopis'] !== null && $results['mikroskopis'] !== ''): ?>
+                    <tr>
+                        <td><strong>Mikroskopis</strong></td>
+                        <td colspan="3" style="text-align: left;"><?php echo htmlspecialchars($results['mikroskopis']); ?></td>
+                    </tr>
+                    <?php endif;
+                        
+                        if (isset($results['tes_kehamilan']) && $results['tes_kehamilan'] !== null): 
+                            $is_normal = (strtolower($results['tes_kehamilan']) == 'negatif');
+                        ?>
+                    <tr>
+                        <td><strong>Tes Kehamilan</strong></td>
+                        <td style="text-align: center;"><strong><?php echo $results['tes_kehamilan']; ?></strong></td>
+                        <td style="text-align: center;">Negatif</td>
+                        <td style="text-align: center;"><span class="<?php echo $is_normal ? 'status-normal' : 'status-abnormal'; ?>"><?php echo $is_normal ? 'Normal' : 'Abnormal'; ?></span></td>
+                    </tr>
+                    <?php endif;
+        
                         
                     elseif (strtolower($examination['jenis_pemeriksaan']) == 'serologi' || strtolower($examination['jenis_pemeriksaan']) == 'serologi imunologi'):
                         // TAMBAHAN: RDT Antigen

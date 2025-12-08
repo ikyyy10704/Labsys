@@ -66,57 +66,7 @@ class Pasien_model extends CI_Model {
         return $query->row_array();
     }
 
-    /**
-     * Create new patient
-     */
-    public function create_patient($patient_data)
-    {
-        $this->db->trans_start();
-        
-        try {
-            $this->db->insert('pasien', $patient_data);
-            $patient_id = $this->db->insert_id();
-            
-            $this->db->trans_complete();
-            
-            if ($this->db->trans_status() === FALSE) {
-                return false;
-            }
-            
-            return $patient_id;
-            
-        } catch (Exception $e) {
-            $this->db->trans_rollback();
-            log_message('error', 'Error creating patient: ' . $e->getMessage());
-            return false;
-        }
-    }
 
-    /**
-     * Update patient data
-     */
-    public function update_patient($patient_id, $patient_data)
-    {
-        $this->db->trans_start();
-        
-        try {
-            $this->db->where('pasien_id', $patient_id);
-            $this->db->update('pasien', $patient_data);
-            
-            $this->db->trans_complete();
-            
-            return $this->db->trans_status() !== FALSE;
-            
-        } catch (Exception $e) {
-            $this->db->trans_rollback();
-            log_message('error', 'Error updating patient: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Delete patient (soft delete by checking dependencies)
-     */
     public function delete_patient($patient_id)
     {
         $this->db->trans_start();
@@ -1140,6 +1090,119 @@ public function batch_update_ages()
             'success' => false,
             'updated_count' => 0
         ];
+    }
+}
+/**
+ * Create new patient - FIXED for AUTO_INCREMENT compatibility
+ */
+public function create_patient($patient_data)
+{
+    $this->db->trans_start();
+    
+    try {
+        // PERBAIKAN: Pastikan pasien_id tidak ada dalam data yang akan diinsert
+        if (isset($patient_data['pasien_id'])) {
+            unset($patient_data['pasien_id']);
+        }
+        
+        // Clean and validate data sebelum insert
+        $clean_data = array();
+        $allowed_fields = array(
+            'nama', 'nik', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'umur',
+            'alamat_domisili', 'pekerjaan', 'telepon', 'kontak_darurat', 'riwayat_pasien',
+            'permintaan_pemeriksaan', 'dokter_perujuk', 'asal_rujukan', 'nomor_rujukan',
+            'tanggal_rujukan', 'diagnosis_awal', 'rekomendasi_pemeriksaan', 
+            'nomor_registrasi', 'created_at'
+        );
+        
+        foreach ($allowed_fields as $field) {
+            if (isset($patient_data[$field])) {
+                $clean_data[$field] = $patient_data[$field];
+            }
+        }
+        
+        // Set default created_at jika tidak ada
+        if (!isset($clean_data['created_at'])) {
+            $clean_data['created_at'] = date('Y-m-d H:i:s');
+        }
+        
+        // Insert data
+        $this->db->insert('pasien', $clean_data);
+        $patient_id = $this->db->insert_id();
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === FALSE || !$patient_id || $patient_id == 0) {
+            $error = $this->db->error();
+            log_message('error', 'Failed to create patient. Error: ' . json_encode($error));
+            log_message('error', 'Data attempted: ' . json_encode($clean_data));
+            return false;
+        }
+        
+        return $patient_id;
+        
+    } catch (Exception $e) {
+        $this->db->trans_rollback();
+        log_message('error', 'Exception creating patient: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Update patient data - FIXED to prevent pasien_id modification
+ */
+public function update_patient($patient_id, $patient_data)
+{
+    $this->db->trans_start();
+    
+    try {
+        // PERBAIKAN: Pastikan pasien_id tidak di-update
+        if (isset($patient_data['pasien_id'])) {
+            unset($patient_data['pasien_id']);
+        }
+        
+        // Pastikan nomor_registrasi tidak berubah saat update
+        if (isset($patient_data['nomor_registrasi'])) {
+            unset($patient_data['nomor_registrasi']);
+        }
+        
+        // Clean data
+        $clean_data = array();
+        $allowed_fields = array(
+            'nama', 'nik', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'umur',
+            'alamat_domisili', 'pekerjaan', 'telepon', 'kontak_darurat', 'riwayat_pasien',
+            'permintaan_pemeriksaan', 'dokter_perujuk', 'asal_rujukan', 'nomor_rujukan',
+            'tanggal_rujukan', 'diagnosis_awal', 'rekomendasi_pemeriksaan'
+        );
+        
+        foreach ($allowed_fields as $field) {
+            if (isset($patient_data[$field])) {
+                $clean_data[$field] = $patient_data[$field];
+            }
+        }
+        
+        if (empty($clean_data)) {
+            log_message('error', 'No valid data to update for patient_id: ' . $patient_id);
+            return false;
+        }
+        
+        $this->db->where('pasien_id', $patient_id);
+        $this->db->update('pasien', $clean_data);
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === FALSE) {
+            $error = $this->db->error();
+            log_message('error', 'Failed to update patient. Error: ' . json_encode($error));
+            return false;
+        }
+        
+        return true;
+        
+    } catch (Exception $e) {
+        $this->db->trans_rollback();
+        log_message('error', 'Exception updating patient: ' . $e->getMessage());
+        return false;
     }
 }
 }

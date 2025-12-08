@@ -367,7 +367,7 @@ class Excel_controller extends CI_Controller {
         $sheet->setTitle('Laporan Pemeriksaan');
         
         $spreadsheet->getProperties()
-            ->setCreator('Labsys - Sistem Informasi Laboratorium')
+            ->setCreator('LabSy - Sistem Informasi Laboratorium')
             ->setTitle('Laporan Data Pemeriksaan')
             ->setSubject('Export Data Pemeriksaan')
             ->setDescription('Laporan data pemeriksaan laboratorium')
@@ -417,7 +417,7 @@ class Excel_controller extends CI_Controller {
         $sheet->setTitle('Laporan Keuangan');
         
         $spreadsheet->getProperties()
-            ->setCreator('Labsys - Sistem Informasi Laboratorium')
+            ->setCreator('LabSy - Sistem Informasi Laboratorium')
             ->setTitle('Laporan Data Keuangan')
             ->setSubject('Export Data Keuangan')
             ->setDescription('Laporan data keuangan laboratorium')
@@ -1364,7 +1364,7 @@ class Excel_controller extends CI_Controller {
         
         // Set document properties
         $spreadsheet->getProperties()
-            ->setCreator('Labsys - Sistem Informasi Laboratorium')
+            ->setCreator('LabSy - Sistem Informasi Laboratorium')
             ->setTitle('Laporan Data Pasien')
             ->setSubject('Export Data Pasien')
             ->setDescription('Laporan data pasien laboratorium')
@@ -1385,7 +1385,7 @@ class Excel_controller extends CI_Controller {
         
         // Lab Information
         $row = 5;
-        $sheet->setCellValue("A{$row}", 'Laboratorium Labsy');
+        $sheet->setCellValue("A{$row}", 'Laboratorium LabSy');
         $sheet->getStyle("A{$row}")->getFont()->setSize(14)->setBold(true);
         
         $row++;

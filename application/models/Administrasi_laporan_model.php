@@ -11,6 +11,7 @@ class Administrasi_laporan_model extends CI_Model {
     // ==========================================
     // EXAMINATION REPORTS FUNCTIONS
     // ==========================================
+    
 
     public function get_examination_statistics($filters = array()) {
         try {
@@ -814,4 +815,5 @@ class Administrasi_laporan_model extends CI_Model {
         return $conditions;
     }
 }
+
 ?>

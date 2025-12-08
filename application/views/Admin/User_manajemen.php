@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Pengguna - Labsys</title>
+    <title>Manajemen Pengguna - LabSy</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -243,6 +243,7 @@
                             <option value="admin">Administrator</option>
                             <option value="administrasi">Staff Administrasi</option>
                             <option value="petugas_lab">Petugas Laboratorium</option>
+                            <option value="supervisor">supervisor</option>
                         </select>
                         <i data-lucide="shield" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
                     </div>
@@ -330,6 +331,52 @@
                         </div>
                     </div>
                 </div>
+                    <!-- Fields for Supervisor -->
+                <div id="supervisor_fields" class="space-y-4 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="jenis_keahlian_supervisor" class="block text-sm font-medium text-gray-700 mb-2">
+                            Jenis Keahlian
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                id="jenis_keahlian_supervisor" 
+                                name="jenis_keahlian_supervisor" 
+                                class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                                placeholder="Contoh: Quality Control & Assurance">
+                            <i data-lucide="graduation-cap" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="telepon_supervisor" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nomor Telepon
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                id="telepon_supervisor" 
+                                name="telepon_supervisor" 
+                                class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                                placeholder="Contoh: 08123456789">
+                            <i data-lucide="phone" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="alamat_supervisor" class="block text-sm font-medium text-gray-700 mb-2">
+                        Alamat
+                    </label>
+                    <div class="relative">
+                        <textarea id="alamat_supervisor" 
+                                name="alamat_supervisor" 
+                                rows="3"
+                                class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none"
+                                placeholder="Masukkan alamat lengkap"></textarea>
+                        <i data-lucide="map-pin" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
 
                 <!-- Action Buttons -->
                 <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-100">
@@ -509,7 +556,7 @@ function updateUserCount(count) {
 
 // Get user phone number based on role
 function getUserPhone(user, details) {
-    if (user.role === 'administrasi' || user.role === 'petugas_lab') {
+    if (user.role === 'administrasi' || user.role === 'petugas_lab'|| user.role === 'supervisor') {
         return details?.telepon || 'Tidak tersedia';
     }
     return 'Tidak tersedia';
@@ -528,13 +575,15 @@ function renderUsersTable(users) {
         const roleNames = {
             'admin': 'Administrator',
             'administrasi': 'Staff Administrasi',
-            'petugas_lab': 'Petugas Lab'
+            'petugas_lab': 'Petugas Lab',
+            'supervisor': 'Supervisor'
         };
         
         const roleColors = {
             'admin': 'bg-purple-100 text-purple-800',
             'administrasi': 'bg-blue-100 text-blue-800',
-            'petugas_lab': 'bg-green-100 text-green-800'
+            'petugas_lab': 'bg-green-100 text-green-800',
+            'supervisor': 'bg-yellow-100 text-yellow-800'
         };
 
         const isCurrentUser = user.user_id == '<?= $this->session->userdata("user_id") ?>';
@@ -647,6 +696,7 @@ function closeAddForm() {
     clearValidationErrors();
     document.getElementById('administrasi_fields').classList.add('hidden');
     document.getElementById('petugas_lab_fields').classList.add('hidden');
+     document.getElementById('supervisor_fields').classList.add('hidden');
     ensureFullwidthLayout();
 }
 
@@ -655,16 +705,20 @@ function toggleRoleFields() {
     const role = document.getElementById('role').value;
     const administrasiFields = document.getElementById('administrasi_fields');
     const petugasLabFields = document.getElementById('petugas_lab_fields');
+    const supervisorFields = document.getElementById('supervisor_fields');
     
     // Hide all role-specific fields
     administrasiFields.classList.add('hidden');
     petugasLabFields.classList.add('hidden');
+    supervisorFields.classList.add('hidden');
     
     // Show relevant fields based on role
     if (role === 'administrasi') {
         administrasiFields.classList.remove('hidden');
     } else if (role === 'petugas_lab') {
         petugasLabFields.classList.remove('hidden');
+    } else if (role === 'supervisor') {
+        supervisorFields.classList.remove('hidden');
     }
     ensureFullwidthLayout();
 }
@@ -814,6 +868,26 @@ function populateEditForm(user, details) {
                 </div>
             ` : ''}
             
+            ${user.role === 'supervisor' ? `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Keahlian</label>
+                        <input type="text" name="jenis_keahlian" value="${details.jenis_keahlian || ''}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Telepon</label>
+                        <input type="text" name="telepon" value="${details.telepon || ''}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
+                    <textarea name="alamat" rows="3" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">${details.alamat || ''}</textarea>
+                </div>
+            ` : ''}
+            
             <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-100">
                 <button type="button" onclick="closeEditModal()" 
                         class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
@@ -826,7 +900,6 @@ function populateEditForm(user, details) {
             </div>
         </div>
     `;
-    
     document.getElementById('edit-form').innerHTML = formContent;
     
     // Handle edit form submission

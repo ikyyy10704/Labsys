@@ -249,7 +249,7 @@ public function get_examination_results_cached($examination_id, $examination_typ
                 'nama' => 'SISTEM INFORMASI LABORATORIUM',
                 'alamat' => 'Jl. Tata Bumi No.3, Area Sawah, Banyuraden, Kec. Gamping, Kabupaten Sleman, DIY 55293',
                 'telephone' => '(021) 123-4567',
-                'email' => 'info@labsys.com'
+                'email' => 'info@labsy.com'
             );
             
         } catch (Exception $e) {
@@ -258,7 +258,7 @@ public function get_examination_results_cached($examination_id, $examination_typ
                 'nama' => 'SISTEM INFORMASI LABORATORIUM',
                 'alamat' => 'Jl. Tata Bumi No.3, Area Sawah, Banyuraden, Kec. Gamping, Kabupaten Sleman, DIY 55293',
                 'telephone' => '(021) 123-4567',
-                'email' => 'info@labsys.com'
+                'email' => 'info@labsy.com'
             );
         }
     }

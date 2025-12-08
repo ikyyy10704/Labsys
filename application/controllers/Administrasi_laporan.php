@@ -621,7 +621,150 @@ class Administrasi_laporan extends CI_Controller {
         
         $this->output->set_output(json_encode($response));
     }
+public function ajax_get_invoice_detail_breakdown($invoice_id)
+{
+    $this->output->set_content_type('application/json');
+    
+    try {
+        if (empty($invoice_id) || !is_numeric($invoice_id)) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'ID invoice tidak valid'
+            )));
+            return;
+        }
+        
+        $invoice_id = (int)$invoice_id;
+        
+        // Load Invoice_model jika belum
+        if (!isset($this->Invoice_model)) {
+            $this->load->model('Invoice_model');
+        }
+        
+        // Get invoice dengan breakdown otomatis
+        $invoice = $this->Invoice_model->get_invoice_with_details($invoice_id);
+        
+        if (!$invoice) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Invoice tidak ditemukan'
+            )));
+            return;
+        }
+        
+        $this->output->set_output(json_encode(array(
+            'success' => true,
+            'invoice' => $invoice
+        )));
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting invoice breakdown: ' . $e->getMessage());
+        $this->output->set_output(json_encode(array(
+            'success' => false,
+            'message' => 'Gagal mengambil detail invoice'
+        )));
+    }
+}
 
+/**
+ * AJAX: Update payment status dengan konfirmasi lengkap
+ * Digunakan untuk konfirmasi pembayaran dari modal preview
+ */
+public function ajax_update_payment_status()
+{
+    $this->output->set_content_type('application/json');
+    
+    if ($this->input->method() !== 'post') {
+        $this->output->set_output(json_encode(array(
+            'success' => false,
+            'message' => 'Method not allowed'
+        )));
+        return;
+    }
+    
+    try {
+        $invoice_id = $this->input->post('invoice_id');
+        $status = $this->input->post('status');
+        $metode_pembayaran = $this->input->post('metode_pembayaran');
+        $tanggal_pembayaran = $this->input->post('tanggal_pembayaran');
+        $keterangan = $this->input->post('keterangan');
+        
+        // Validasi input
+        if (!$invoice_id || !$status) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            )));
+            return;
+        }
+        
+        if (!is_numeric($invoice_id)) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'ID invoice tidak valid'
+            )));
+            return;
+        }
+        
+        if (!in_array($status, ['lunas', 'belum_bayar', 'cicilan'])) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Status pembayaran tidak valid'
+            )));
+            return;
+        }
+        
+        // Validasi khusus untuk status lunas
+        if ($status === 'lunas' && empty($metode_pembayaran)) {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Metode pembayaran harus diisi untuk status lunas'
+            )));
+            return;
+        }
+        
+        $update_data = array(
+            'status_pembayaran' => $status,
+            'keterangan' => $keterangan
+        );
+        
+        // Set metode dan tanggal pembayaran jika status lunas
+        if ($status === 'lunas') {
+            $update_data['metode_pembayaran'] = $metode_pembayaran;
+            $update_data['tanggal_pembayaran'] = $tanggal_pembayaran ?: date('Y-m-d');
+        } else {
+            // Reset metode dan tanggal jika bukan lunas
+            $update_data['metode_pembayaran'] = null;
+            $update_data['tanggal_pembayaran'] = null;
+        }
+        
+        if ($this->Administrasi_laporan_model->update_invoice_payment($invoice_id, $update_data)) {
+            $this->Administrasi_laporan_model->log_activity(
+                $this->session->userdata('user_id'),
+                'Pembayaran dikonfirmasi: ' . $status,
+                'invoice',
+                $invoice_id
+            );
+            
+            $this->output->set_output(json_encode(array(
+                'success' => true,
+                'message' => 'Pembayaran berhasil dikonfirmasi'
+            )));
+        } else {
+            $this->output->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Gagal memperbarui status pembayaran'
+            )));
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error updating payment status: ' . $e->getMessage());
+        $this->output->set_output(json_encode(array(
+            'success' => false,
+            'message' => 'Terjadi kesalahan sistem'
+        )));
+    }
+}
     public function ajax_get_invoice_detail($invoice_id)
     {
         $this->output->set_content_type('application/json');
@@ -666,86 +809,5 @@ class Administrasi_laporan extends CI_Controller {
         $this->output->set_output(json_encode($response));
     }
 
-    public function ajax_update_payment_status()
-    {
-        $this->output->set_content_type('application/json');
-        
-        if ($this->input->method() !== 'post') {
-            $this->output->set_output(json_encode(array(
-                'success' => false,
-                'message' => 'Method not allowed'
-            )));
-            return;
-        }
-        
-        try {
-            $invoice_id = $this->input->post('invoice_id');
-            $status = $this->input->post('status');
-            $metode_pembayaran = $this->input->post('metode_pembayaran');
-            $tanggal_pembayaran = $this->input->post('tanggal_pembayaran');
-            $keterangan = $this->input->post('keterangan');
-            
-            // Validasi input
-            if (!$invoice_id || !$status) {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'Data tidak lengkap'
-                )));
-                return;
-            }
-            
-            if (!is_numeric($invoice_id)) {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'ID invoice tidak valid'
-                )));
-                return;
-            }
-            
-            if (!in_array($status, ['lunas', 'belum_bayar', 'cicilan'])) {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'Status pembayaran tidak valid'
-                )));
-                return;
-            }
-            
-            $update_data = array(
-                'status_pembayaran' => $status,
-                'metode_pembayaran' => $metode_pembayaran,
-                'keterangan' => $keterangan
-            );
-            
-            if ($status === 'lunas' && $tanggal_pembayaran) {
-                $update_data['tanggal_pembayaran'] = $tanggal_pembayaran;
-            }
-            
-            if ($this->Administrasi_laporan_model->update_invoice_payment($invoice_id, $update_data)) {
-                $this->Administrasi_laporan_model->log_activity(
-                    $this->session->userdata('user_id'),
-                    'Status pembayaran invoice diperbarui: ' . $status,
-                    'invoice',
-                    $invoice_id
-                );
-                
-                $this->output->set_output(json_encode(array(
-                    'success' => true,
-                    'message' => 'Status pembayaran berhasil diperbarui'
-                )));
-            } else {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'Gagal memperbarui status pembayaran'
-                )));
-            }
-            
-        } catch (Exception $e) {
-            log_message('error', 'Error updating payment status: ' . $e->getMessage());
-            $this->output->set_output(json_encode(array(
-                'success' => false,
-                'message' => 'Terjadi kesalahan sistem'
-            )));
-        }
-    }
 }
 ?>

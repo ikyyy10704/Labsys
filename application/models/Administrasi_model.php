@@ -8,10 +8,7 @@ class Administrasi_model extends CI_Model {
         $this->load->database();
     }
 
-    public function create_patient($data) {
-        $this->db->insert('pasien', $data);
-        return $this->db->insert_id();
-    }
+
 
     public function get_all_patients() {
         $this->db->order_by('created_at', 'DESC');
@@ -56,10 +53,7 @@ class Administrasi_model extends CI_Model {
         return false;
     }
 
-    public function create_examination($data) {
-        $this->db->insert('pemeriksaan_lab', $data);
-        return $this->db->insert_id();
-    }
+
 
     public function get_patients_with_pending_exams() {
         $this->db->select('pl.pemeriksaan_id, pl.nomor_pemeriksaan, pl.jenis_pemeriksaan, 
@@ -74,10 +68,6 @@ class Administrasi_model extends CI_Model {
         return $this->db->get()->result_array();
     }
 
-    public function create_invoice($data) {
-        $this->db->insert('invoice', $data);
-        return $this->db->insert_id();
-    }
 
     public function get_invoice_by_id($invoice_id) {
         $this->db->select('i.*, p.nama as nama_pasien, p.nik, 
@@ -475,7 +465,16 @@ public function get_patients_paginated($search = '', $limit = 10, $offset = 0)
     
     return $this->db->get('pasien')->result_array();
 }
-
+public function create_patient($data) {
+    try {
+        $this->db->insert('pasien', $data);
+        return $this->db->insert_id();
+    } catch (Exception $e) {
+        log_message('error', 'Error creating patient: ' . $e->getMessage());
+        log_message('error', 'Patient data: ' . json_encode($data));
+        return false;
+    }
+}
 public function count_patients($search = '')
 {
     if (!empty($search)) {
@@ -487,9 +486,8 @@ public function count_patients($search = '')
         $this->db->group_end();
     }
     
-    return $this->db->count_all_results('pasien');
+    return (int)$this->db->count_all_results('pasien');
 }
-
 public function get_financial_summary()
 {
     $this->db->select('
@@ -789,5 +787,584 @@ public function update_request_status($request_id, $data)
     $this->db->where('permintaan_id', $request_id);
     return $this->db->update('patient_requests', $data);
 }
+public function generate_invoice_auto($pemeriksaan_id) {
+    try {
+        $this->db->trans_start();
+        
+        // Load Invoice_model jika belum
+        if (!isset($this->invoice_model)) {
+            $this->load->model('Invoice_model', 'invoice_model');
+        }
+        
+        // Cek apakah pemeriksaan sudah punya hasil
+        $has_results = $this->invoice_model->has_examination_results($pemeriksaan_id);
+        
+        if (!$has_results) {
+            return array(
+                'success' => false,
+                'message' => 'Pemeriksaan belum memiliki hasil. Silakan input hasil terlebih dahulu.'
+            );
+        }
+        
+        // Buat/update invoice dengan perhitungan otomatis
+        $invoice_id = $this->invoice_model->create_or_update_invoice($pemeriksaan_id);
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === FALSE || !$invoice_id) {
+            return array(
+                'success' => false,
+                'message' => 'Gagal membuat invoice'
+            );
+        }
+        
+        // Ambil detail invoice
+        $invoice = $this->invoice_model->get_invoice_with_details($invoice_id);
+        
+        return array(
+            'success' => true,
+            'message' => 'Invoice berhasil dibuat dengan total biaya Rp ' . number_format($invoice['total_biaya'], 0, ',', '.'),
+            'invoice_id' => $invoice_id,
+            'invoice' => $invoice
+        );
+        
+    } catch (Exception $e) {
+        $this->db->trans_rollback();
+        log_message('error', 'Error generating auto invoice: ' . $e->getMessage());
+        return array(
+            'success' => false,
+            'message' => 'Terjadi kesalahan sistem'
+        );
+    }
+}
 
+/**
+ * Get invoice detail dengan breakdown biaya
+ */
+public function get_invoice_detail_with_breakdown($invoice_id) {
+    try {
+        if (!isset($this->invoice_model)) {
+            $this->load->model('Invoice_model', 'invoice_model');
+        }
+        
+        return $this->invoice_model->get_invoice_with_details($invoice_id);
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting invoice detail: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Recalculate invoice (jika ada perubahan hasil pemeriksaan)
+ */
+public function recalculate_invoice($invoice_id) {
+    try {
+        // Ambil pemeriksaan_id dari invoice
+        $this->db->select('pemeriksaan_id');
+        $this->db->where('invoice_id', $invoice_id);
+        $invoice = $this->db->get('invoice')->row_array();
+        
+        if (!$invoice) {
+            return array(
+                'success' => false,
+                'message' => 'Invoice tidak ditemukan'
+            );
+        }
+        
+        if (!isset($this->invoice_model)) {
+            $this->load->model('Invoice_model', 'invoice_model');
+        }
+        
+        // Hitung ulang dan update
+        $result = $this->invoice_model->create_or_update_invoice($invoice['pemeriksaan_id']);
+        
+        if ($result) {
+            return array(
+                'success' => true,
+                'message' => 'Invoice berhasil dihitung ulang'
+            );
+        } else {
+            return array(
+                'success' => false,
+                'message' => 'Gagal menghitung ulang invoice'
+            );
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error recalculating invoice: ' . $e->getMessage());
+        return array(
+            'success' => false,
+            'message' => 'Terjadi kesalahan sistem'
+        );
+    }
+}
+
+/**
+ * Get preview biaya sebelum generate invoice
+ */
+public function preview_examination_cost($pemeriksaan_id) {
+    try {
+        if (!isset($this->invoice_model)) {
+            $this->load->model('Invoice_model', 'invoice_model');
+        }
+        
+        $total_cost = $this->invoice_model->calculate_examination_cost($pemeriksaan_id);
+        $breakdown = $this->invoice_model->get_cost_breakdown($pemeriksaan_id);
+        
+        // Ambil data pemeriksaan
+        $this->db->select('
+            pl.nomor_pemeriksaan,
+            pl.jenis_pemeriksaan,
+            pl.tanggal_pemeriksaan,
+            p.nama as nama_pasien,
+            p.nik
+        ');
+        $this->db->from('pemeriksaan_lab pl');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+        $this->db->where('pl.pemeriksaan_id', $pemeriksaan_id);
+        $examination = $this->db->get()->row_array();
+        
+        return array(
+            'success' => true,
+            'examination' => $examination,
+            'total_cost' => $total_cost,
+            'breakdown' => $breakdown
+        );
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error previewing cost: ' . $e->getMessage());
+        return array(
+            'success' => false,
+            'message' => 'Gagal menghitung preview biaya'
+        );
+    }
+}
+
+/**
+ * Get pemeriksaan yang sudah selesai tapi belum punya invoice
+ */
+public function get_examinations_without_invoice() {
+    try {
+        $this->db->select('
+            pl.pemeriksaan_id,
+            pl.nomor_pemeriksaan,
+            pl.jenis_pemeriksaan,
+            pl.tanggal_pemeriksaan,
+            pl.status_pemeriksaan,
+            p.nama as nama_pasien,
+            p.nik,
+            p.nomor_registrasi
+        ');
+        $this->db->from('pemeriksaan_lab pl');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+        $this->db->where('pl.status_pemeriksaan', 'selesai');
+        $this->db->where('pl.pemeriksaan_id NOT IN (SELECT pemeriksaan_id FROM invoice)', null, false);
+        $this->db->order_by('pl.tanggal_pemeriksaan', 'DESC');
+        
+        return $this->db->get()->result_array();
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting examinations without invoice: ' . $e->getMessage());
+        return array();
+    }
+}
+
+/**
+ * Update method create_invoice yang lama untuk compatibility
+ * Sekarang redirect ke generate_invoice_auto
+ */
+public function create_invoice($data) {
+    // Jika masih ada code yang memanggil method lama
+    if (isset($data['pemeriksaan_id'])) {
+        return $this->generate_invoice_auto($data['pemeriksaan_id']);
+    }
+    
+    return array(
+        'success' => false,
+        'message' => 'Data pemeriksaan tidak valid'
+    );
+}
+
+/**
+ * Get all invoices with pagination and filters
+ */
+public function get_invoices_paginated($filters = array(), $limit = 20, $offset = 0) {
+    try {
+        $this->db->select('
+            i.*,
+            p.nama as nama_pasien,
+            p.nik,
+            pl.nomor_pemeriksaan,
+            pl.jenis_pemeriksaan
+        ');
+        $this->db->from('invoice i');
+        $this->db->join('pemeriksaan_lab pl', 'i.pemeriksaan_id = pl.pemeriksaan_id');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+        
+        // Apply filters
+        if (!empty($filters['status_pembayaran'])) {
+            $this->db->where('i.status_pembayaran', $filters['status_pembayaran']);
+        }
+        
+        if (!empty($filters['jenis_pembayaran'])) {
+            $this->db->where('i.jenis_pembayaran', $filters['jenis_pembayaran']);
+        }
+        
+        if (!empty($filters['start_date'])) {
+            $this->db->where('i.tanggal_invoice >=', $filters['start_date']);
+        }
+        
+        if (!empty($filters['end_date'])) {
+            $this->db->where('i.tanggal_invoice <=', $filters['end_date']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $this->db->group_start();
+            $this->db->like('i.nomor_invoice', $filters['search']);
+            $this->db->or_like('p.nama', $filters['search']);
+            $this->db->or_like('p.nik', $filters['search']);
+            $this->db->or_like('pl.nomor_pemeriksaan', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        $this->db->order_by('i.created_at', 'DESC');
+        $this->db->limit($limit, $offset);
+        
+        return $this->db->get()->result_array();
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting invoices: ' . $e->getMessage());
+        return array();
+    }
+}
+
+/**
+ * Count invoices with filters
+ */
+public function count_invoices($filters = array()) {
+    try {
+        $this->db->select('COUNT(*) as total');
+        $this->db->from('invoice i');
+        $this->db->join('pemeriksaan_lab pl', 'i.pemeriksaan_id = pl.pemeriksaan_id');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+        
+        // Apply same filters as get_invoices_paginated
+        if (!empty($filters['status_pembayaran'])) {
+            $this->db->where('i.status_pembayaran', $filters['status_pembayaran']);
+        }
+        
+        if (!empty($filters['jenis_pembayaran'])) {
+            $this->db->where('i.jenis_pembayaran', $filters['jenis_pembayaran']);
+        }
+        
+        if (!empty($filters['start_date'])) {
+            $this->db->where('i.tanggal_invoice >=', $filters['start_date']);
+        }
+        
+        if (!empty($filters['end_date'])) {
+            $this->db->where('i.tanggal_invoice <=', $filters['end_date']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $this->db->group_start();
+            $this->db->like('i.nomor_invoice', $filters['search']);
+            $this->db->or_like('p.nama', $filters['search']);
+            $this->db->or_like('p.nik', $filters['search']);
+            $this->db->or_like('pl.nomor_pemeriksaan', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        $result = $this->db->get()->row_array();
+        return (int)$result['total'];
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error counting invoices: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Log activity untuk audit trail
+ */
+public function log_activity($user_id, $activity, $table_affected = null, $record_id = null) {
+    try {
+        $data = array(
+            'user_id' => $user_id,
+            'activity' => $activity,
+            'table_affected' => $table_affected,
+            'record_id' => $record_id,
+            'ip_address' => $this->input->ip_address(),
+            'created_at' => date('Y-m-d H:i:s')
+        );
+        
+        $this->db->insert('activity_log', $data);
+        return $this->db->insert_id();
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error logging activity: ' . $e->getMessage());
+        return false;
+    }
+}
+
+public function generate_examination_number() {
+    $prefix = 'LAB' . date('Y');
+    
+    $this->db->where('nomor_pemeriksaan LIKE', $prefix . '%');
+    $this->db->order_by('nomor_pemeriksaan', 'DESC');
+    $this->db->limit(1);
+    $last_exam = $this->db->get('pemeriksaan_lab')->row_array();
+    if ($last_exam && !empty($last_exam['nomor_pemeriksaan'])) {
+        $last_number = intval(substr($last_exam['nomor_pemeriksaan'], -4));
+        $new_number = $last_number + 1;
+    } else {
+        $new_number = 1;
+    }
+    
+    return $prefix . str_pad($new_number, 4, '0', STR_PAD_LEFT);
+}
+
+
+public function get_full_examination_data($pemeriksaan_id) {
+    // Get main data
+    $this->db->select('pl.*, p.nama, p.nik, p.nomor_registrasi');
+    $this->db->from('pemeriksaan_lab pl');
+    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+    $this->db->where('pl.pemeriksaan_id', $pemeriksaan_id);
+    $main = $this->db->get()->row_array();
+    
+    if ($main) {
+        // Get detail pemeriksaan
+        $main['details'] = $this->get_pemeriksaan_details($pemeriksaan_id);
+        
+        // Get sampel
+        $main['sampel'] = $this->get_pemeriksaan_sampel($pemeriksaan_id);
+    }
+    
+    return $main;
+}
+
+public function get_pemeriksaan_details($pemeriksaan_id) {
+    return $this->db->where('pemeriksaan_id', $pemeriksaan_id)
+                    ->order_by('urutan', 'ASC')
+                    ->get('pemeriksaan_detail')
+                    ->result_array();
+}
+
+/**
+ * Get sampel pemeriksaan
+ */
+public function get_pemeriksaan_sampel($pemeriksaan_id) {
+    return $this->db->where('pemeriksaan_id', $pemeriksaan_id)
+                    ->get('pemeriksaan_sampel')
+                    ->result_array();
+}
+
+/**
+ * Create examination dengan validasi enhanced
+ */
+public function create_examination($data) {
+    try {
+        // Pastikan data tidak mengandung pemeriksaan_id (biarkan auto increment)
+        if (isset($data['pemeriksaan_id'])) {
+            unset($data['pemeriksaan_id']);
+        }
+        
+        // Pastikan field required ada
+        $required_fields = ['pasien_id', 'nomor_pemeriksaan', 'tanggal_pemeriksaan', 'status_pasien'];
+        foreach ($required_fields as $field) {
+            if (!isset($data[$field]) || empty($data[$field])) {
+                throw new Exception("Field $field is required");
+            }
+        }
+        
+        // Validasi status pasien
+        $valid_status = ['puasa', 'belum_puasa', 'minum_obat'];
+        if (!in_array($data['status_pasien'], $valid_status)) {
+            throw new Exception("Invalid status_pasien value");
+        }
+        
+        // Jika status minum obat, keterangan_obat harus ada
+        if ($data['status_pasien'] === 'minum_obat' && empty($data['keterangan_obat'])) {
+            throw new Exception("Keterangan obat required when status is minum_obat");
+        }
+         
+        // Set default values jika tidak disediakan
+        $default_data = [
+            'status_pemeriksaan' => 'pending',
+            'created_at' => date('Y-m-d H:i:s'),
+            'biaya' => NULL,
+            'jenis_pemeriksaan' => '' // Akan diisi oleh trigger
+        ];
+        
+        $data = array_merge($default_data, $data);
+        
+        $this->db->insert('pemeriksaan_lab', $data);
+        
+        if ($this->db->affected_rows() > 0) {
+            $insert_id = $this->db->insert_id();
+            
+            if ($insert_id > 0) {
+                log_message('info', 'Examination created successfully with ID: ' . $insert_id);
+                return $insert_id;
+            } else {
+                throw new Exception('Invalid insert ID returned: ' . $insert_id);
+            }
+        } else {
+            $error = $this->db->error();
+            throw new Exception('Database error: ' . $error['message']);
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error creating examination: ' . $e->getMessage());
+        log_message('error', 'Examination data: ' . json_encode($data));
+        return false;
+    }
+}
+
+/**
+ * Get examination requests dengan pagination dan filter
+ */
+public function get_examination_requests($filters = [], $limit = 10, $offset = 0) {
+    $this->db->select('pl.*, p.nama as nama_pasien, p.nik, p.nomor_registrasi');
+    $this->db->from('pemeriksaan_lab pl');
+    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+    
+    // Apply filters
+    if (!empty($filters['status'])) {
+        $this->db->where('pl.status_pemeriksaan', $filters['status']);
+    }
+    
+    if (!empty($filters['status_pasien'])) {
+        $this->db->where('pl.status_pasien', $filters['status_pasien']);
+    }
+    
+    if (!empty($filters['start_date'])) {
+        $this->db->where('pl.tanggal_pemeriksaan >=', $filters['start_date']);
+    }
+    
+    if (!empty($filters['end_date'])) {
+        $this->db->where('pl.tanggal_pemeriksaan <=', $filters['end_date']);
+    }
+    
+    if (!empty($filters['search'])) {
+        $this->db->group_start();
+        $this->db->like('pl.nomor_pemeriksaan', $filters['search']);
+        $this->db->or_like('p.nama', $filters['search']);
+        $this->db->or_like('p.nik', $filters['search']);
+        $this->db->group_end();
+    }
+    
+    $this->db->order_by('pl.created_at', 'DESC');
+    $this->db->limit($limit, $offset);
+    
+    $results = $this->db->get()->result_array();
+    
+    // Tambahkan detail untuk setiap pemeriksaan
+    foreach ($results as &$result) {
+        $result['details'] = $this->get_pemeriksaan_details($result['pemeriksaan_id']);
+        $result['sampel'] = $this->get_pemeriksaan_sampel($result['pemeriksaan_id']);
+    }
+    
+    return $results;
+}
+
+/**
+ * Count examination requests dengan filter
+ */
+public function count_examination_requests($filters = []) {
+    $this->db->select('COUNT(*) as total');
+    $this->db->from('pemeriksaan_lab pl');
+    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
+    
+    // Apply same filters
+    if (!empty($filters['status'])) {
+        $this->db->where('pl.status_pemeriksaan', $filters['status']);
+    }
+    
+    if (!empty($filters['status_pasien'])) {
+        $this->db->where('pl.status_pasien', $filters['status_pasien']);
+    }
+    
+    if (!empty($filters['start_date'])) {
+        $this->db->where('pl.tanggal_pemeriksaan >=', $filters['start_date']);
+    }
+    
+    if (!empty($filters['end_date'])) {
+        $this->db->where('pl.tanggal_pemeriksaan <=', $filters['end_date']);
+    }
+    
+    if (!empty($filters['search'])) {
+        $this->db->group_start();
+        $this->db->like('pl.nomor_pemeriksaan', $filters['search']);
+        $this->db->or_like('p.nama', $filters['search']);
+        $this->db->or_like('p.nik', $filters['search']);
+        $this->db->group_end();
+    }
+    
+    $result = $this->db->get()->row_array();
+    return (int)$result['total'];
+}
+
+/**
+ * Get examination statistics dengan status pasien
+ */
+public function get_examination_stats_by_status_pasien($date_range = null) {
+    $this->db->select('status_pasien, COUNT(*) as count');
+    $this->db->from('pemeriksaan_lab');
+    
+    if ($date_range) {
+        $this->db->where('tanggal_pemeriksaan >=', $date_range['start']);
+        $this->db->where('tanggal_pemeriksaan <=', $date_range['end']);
+    }
+    
+    $this->db->group_by('status_pasien');
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Get sampel statistics
+ */
+public function get_sampel_statistics($date_range = null) {
+    $this->db->select('ps.jenis_sampel, COUNT(*) as count');
+    $this->db->from('pemeriksaan_sampel ps');
+    $this->db->join('pemeriksaan_lab pl', 'ps.pemeriksaan_id = pl.pemeriksaan_id');
+    
+    if ($date_range) {
+        $this->db->where('pl.tanggal_pemeriksaan >=', $date_range['start']);
+        $this->db->where('pl.tanggal_pemeriksaan <=', $date_range['end']);
+    }
+    
+    $this->db->group_by('ps.jenis_sampel');
+    $this->db->order_by('count', 'DESC');
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Update pemeriksaan sampel (untuk petugas lab)
+ */
+public function update_sampel_diambil($sampel_id, $user_id) {
+    $data = [
+        'tanggal_diambil' => date('Y-m-d H:i:s'),
+        'diambil_oleh' => $user_id
+    ];
+    
+    $this->db->where('sampel_id', $sampel_id);
+    return $this->db->update('pemeriksaan_sampel', $data);
+}
+
+/**
+ * Check if all sampel sudah diambil
+ */
+public function check_all_sampel_diambil($pemeriksaan_id) {
+    $this->db->select('COUNT(*) as total, SUM(CASE WHEN tanggal_diambil IS NOT NULL THEN 1 ELSE 0 END) as diambil');
+    $this->db->from('pemeriksaan_sampel');
+    $this->db->where('pemeriksaan_id', $pemeriksaan_id);
+    
+    $result = $this->db->get()->row_array();
+    
+    return $result['total'] > 0 && $result['total'] == $result['diambil'];
+}
 }
