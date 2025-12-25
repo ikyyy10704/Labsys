@@ -451,6 +451,32 @@
             </div>
         </div>
     </div>
+    </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-sm w-full shadow-xl transform transition-all scale-100 opacity-100">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="modal-title" class="text-lg font-medium text-gray-900">Konfirmasi</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <p id="modal-message" class="text-gray-500 mb-6">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+            
+            <div class="flex items-center justify-end space-x-3">
+                <button onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors">
+                    Batal
+                </button>
+                <button id="modal-confirm-btn" onclick="confirmAction()" class="px-4 py-2 rounded font-medium transition-colors shadow-sm bg-red-600 text-white">
+                    Konfirmasi
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -458,9 +484,38 @@ const BASE_URL = '<?= base_url() ?>';
 let allPatients = [];
 let patientStats = {};
 let nikCheckTimeout = null; // Global timeout untuk debouncing
+let currentConfirmCallback = null;
+
+// Modal Logic
+function openModal(title, message, confirmText, confirmCallback, confirmColorClass = 'bg-red-600') {
+    document.getElementById('modal-title').textContent = title || 'Konfirmasi';
+    document.getElementById('modal-message').textContent = message || 'Apakah Anda yakin?';
+    
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    confirmBtn.textContent = confirmText || 'Konfirmasi';
+    
+    // Reset and add color class. Removed hardcoded text-white to allow "neon" style
+    confirmBtn.className = `px-4 py-2 rounded font-medium transition-colors shadow-sm ${confirmColorClass}`;
+    
+    currentConfirmCallback = confirmCallback;
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    currentConfirmCallback = null;
+}
+
+function confirmAction() {
+    if (currentConfirmCallback) {
+        currentConfirmCallback();
+    }
+    closeModal();
+}
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
+    closeModal();
     lucide.createIcons();
     loadPatientsData();
     ensureFullwidthLayout();
@@ -1365,27 +1420,31 @@ function calculateEditAge() {
 
 // Delete patient
 async function deletePatient(patientId, patientName) {
-    if (!confirm(`Apakah Anda yakin ingin menghapus pasien "${patientName}"?\n\nTindakan ini tidak dapat dibatalkan.`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(BASE_URL + `pasien/ajax_delete_patient/${patientId}`, {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', data.message);
-            loadPatientsData();
-        } else {
-            showFlashMessage('error', data.message);
-        }
-    } catch (error) {
-        console.error('Error deleting patient:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat menghapus pasien');
-    }
+    openModal(
+        'Hapus Pasien',
+        `Apakah Anda yakin ingin menghapus pasien "${patientName}"?\n\nTindakan ini tidak dapat dibatalkan.`,
+        'Hapus Permanen',
+        async () => {
+            try {
+                const response = await fetch(BASE_URL + `pasien/ajax_delete_patient/${patientId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', data.message);
+                    loadPatientsData();
+                } else {
+                    showFlashMessage('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting patient:', error);
+                showFlashMessage('error', 'Terjadi kesalahan saat menghapus pasien');
+            }
+        },
+        'bg-red-100 text-red-700 hover:bg-red-200 border border-transparent'
+    );
 }
 
 // Search patients
@@ -1414,7 +1473,7 @@ function filterPatients() {
 
 // Export to Excel
 function exportToExcel() {
-    showFlashMessage('info', 'Fitur export sedang dalam pengembangan');
+    window.location.href = '<?= base_url('excel_controller/export_patients') ?>';
 }
 
 // Show flash message

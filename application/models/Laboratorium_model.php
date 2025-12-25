@@ -1011,7 +1011,14 @@ public function get_invoice_number_by_id($invoice_id)
         $this->db->order_by('pl.created_at', 'ASC');
         $this->db->limit($limit, $offset);
         
-        return $this->db->get()->result_array();
+        $requests = $this->db->get()->result_array();
+
+        // Attach examination details
+        foreach ($requests as &$request) {
+            $request['examination_details'] = $this->get_examination_details($request['pemeriksaan_id']);
+        }
+
+        return $requests;
     }
 
     public function count_incoming_requests($filters = array()) {
@@ -1250,38 +1257,6 @@ public function get_invoice_number_by_id($invoice_id)
         return $stats;
     }
 
-    public function get_existing_results($examination_id, $jenis_pemeriksaan) {
-        $results = null;
-        
-        switch (strtolower($jenis_pemeriksaan)) {
-            case 'kimia darah':
-                $results = $this->get_kimia_darah_results($examination_id);
-                break;
-            case 'hematologi':
-                $results = $this->get_hematologi_results($examination_id);
-                break;
-            case 'urinologi':
-                $results = $this->get_urinologi_results($examination_id);
-                break;
-            case 'serologi':
-            case 'serologi imunologi':
-                $results = $this->get_serologi_results($examination_id);
-                break;
-            case 'tbc':
-                $results = $this->get_tbc_results($examination_id);
-                break;
-            case 'ims':
-                $results = $this->get_ims_results($examination_id);
-                break;
-            case 'mls':
-                $results = $this->get_mls_results($examination_id);
-                break;
-        }
-        
-        return $results;
-    }
-
-    // Save or update methods
     public function save_or_update_kimia_darah_results($examination_id, $data) {
         $existing = $this->get_kimia_darah_results($examination_id);
         
@@ -1520,6 +1495,81 @@ public function get_invoice_number_by_id($invoice_id)
         $this->db->limit($limit);
         
         return $this->db->get()->result_array();
+    }
+
+    public function get_validated_results_paginated($filters, $limit, $offset) {
+        $this->db->select('pl.*, p.nama as nama_pasien, p.nik,
+                          COALESCE(pt.nama_petugas, "System") as nama_petugas');
+        $this->db->from('pemeriksaan_lab pl');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id', 'left');
+        $this->db->join('petugas_lab pt', 'pl.petugas_id = pt.petugas_id', 'left');
+        $this->db->where('pl.status_pemeriksaan', 'selesai');
+        
+        // Apply filters
+        if (!empty($filters['date_from'])) {
+            $this->db->where('DATE(pl.completed_at) >=', $filters['date_from']);
+        }
+        
+        if (!empty($filters['date_to'])) {
+            $this->db->where('DATE(pl.completed_at) <=', $filters['date_to']);
+        }
+        
+        if (!empty($filters['jenis_pemeriksaan'])) {
+            $this->db->where('pl.jenis_pemeriksaan', $filters['jenis_pemeriksaan']);
+        }
+        
+        if (!empty($filters['validator'])) {
+            // Assuming validator refers to petugas_id who might have validated it, 
+            // or we might need a validated_by column. 
+            // For now using the assigned petugas associated with the exam.
+            $this->db->where('pl.petugas_id', $filters['validator']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $this->db->group_start();
+            $this->db->like('p.nama', $filters['search']);
+            $this->db->or_like('p.nik', $filters['search']);
+            $this->db->or_like('pl.nomor_pemeriksaan', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        $this->db->order_by('pl.completed_at', 'DESC');
+        $this->db->limit($limit, $offset);
+        
+        return $this->db->get()->result_array();
+    }
+
+    public function count_validated_results($filters) {
+        $this->db->from('pemeriksaan_lab pl');
+        $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id', 'left');
+        $this->db->where('pl.status_pemeriksaan', 'selesai');
+        
+        // Apply filters
+        if (!empty($filters['date_from'])) {
+            $this->db->where('DATE(pl.completed_at) >=', $filters['date_from']);
+        }
+        
+        if (!empty($filters['date_to'])) {
+            $this->db->where('DATE(pl.completed_at) <=', $filters['date_to']);
+        }
+        
+        if (!empty($filters['jenis_pemeriksaan'])) {
+            $this->db->where('pl.jenis_pemeriksaan', $filters['jenis_pemeriksaan']);
+        }
+        
+        if (!empty($filters['validator'])) {
+            $this->db->where('pl.petugas_id', $filters['validator']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $this->db->group_start();
+            $this->db->like('p.nama', $filters['search']);
+            $this->db->or_like('p.nik', $filters['search']);
+            $this->db->or_like('pl.nomor_pemeriksaan', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        return $this->db->count_all_results();
     }
 
 
@@ -2018,35 +2068,6 @@ public function get_sub_pemeriksaan_labels($sub_pemeriksaan_json, $jenis_pemerik
 }
 
 
-public function get_examination_details($examination_id) {
-    $this->db->select('pd.*, pl.jenis_pemeriksaan as main_jenis');
-    $this->db->from('pemeriksaan_detail pd');
-    $this->db->join('pemeriksaan_lab pl', 'pd.pemeriksaan_id = pl.pemeriksaan_id');
-    $this->db->where('pd.pemeriksaan_id', $examination_id);
-    $this->db->order_by('pd.urutan', 'ASC');
-    
-    $details = $this->db->get()->result_array();
-    
-    // Parse sub_pemeriksaan JSON dan tambahkan display label
-    foreach ($details as &$detail) {
-        if (!empty($detail['sub_pemeriksaan'])) {
-            $subs = json_decode($detail['sub_pemeriksaan'], true);
-            if (is_array($subs)) {
-                $detail['sub_pemeriksaan_array'] = $subs;
-                $detail['sub_pemeriksaan_display'] = $this->get_sub_pemeriksaan_labels(
-                    $detail['sub_pemeriksaan'], 
-                    $detail['jenis_pemeriksaan']
-                );
-            }
-        }
-    }
-    
-    return $details;
-}
-
-/**
- * Get samples data dengan examination details (MODIFIED)
- */
 public function get_samples_data_enhanced($filters = array(), $limit = 20, $offset = 0) {
     $this->db->select('pl.*, p.nama as nama_pasien, p.nik, p.jenis_kelamin, p.umur,
                       p.telepon, p.alamat_domisili, p.pekerjaan, p.dokter_perujuk,
@@ -2107,33 +2128,6 @@ public function get_samples_data_enhanced($filters = array(), $limit = 20, $offs
     return $samples;
 }
 
-/**
- * Get examination by ID dengan details (MODIFIED)
- */
-public function get_examination_by_id($examination_id) {
-    $this->db->select('pl.*, p.nama as nama_pasien, p.nik, p.jenis_kelamin, p.umur, 
-                      p.tempat_lahir, p.tanggal_lahir, p.alamat_domisili, p.telepon, 
-                      p.pekerjaan, p.riwayat_pasien, p.dokter_perujuk, p.asal_rujukan,
-                      p.diagnosis_awal, p.rekomendasi_pemeriksaan,
-                      pt.nama_petugas');
-    $this->db->from('pemeriksaan_lab pl');
-    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id');
-    $this->db->join('petugas_lab pt', 'pl.petugas_id = pt.petugas_id', 'left');
-    $this->db->where('pl.pemeriksaan_id', $examination_id);
-    
-    $examination = $this->db->get()->row_array();
-    
-    if ($examination) {
-        // Attach examination details
-        $examination['examination_details'] = $this->get_examination_details($examination_id);
-    }
-    
-    return $examination;
-}
-
-/**
- * Get existing results untuk multiple examination types
- */
 public function get_existing_results_multiple($examination_id, $examination_details) {
     $results = array();
     
@@ -2302,5 +2296,242 @@ private function format_results_by_type($results, $jenis_pemeriksaan) {
     }
     
     return $formatted;
+}
+
+public function get_examination_by_id($examination_id) {
+    if (!is_numeric($examination_id)) {
+        return null;
+    }
+    
+    $this->db->select('pl.*, p.nama as nama_pasien, p.nik, p.jenis_kelamin, p.umur, 
+                      p.tempat_lahir, p.tanggal_lahir, p.alamat_domisili, p.telepon, 
+                      p.pekerjaan, p.riwayat_pasien, p.dokter_perujuk, p.asal_rujukan,
+                      p.diagnosis_awal, p.rekomendasi_pemeriksaan,
+                      COALESCE(pt.nama_petugas, "N/A") as nama_petugas');
+    $this->db->from('pemeriksaan_lab pl');
+    $this->db->join('pasien p', 'pl.pasien_id = p.pasien_id', 'left');
+    $this->db->join('petugas_lab pt', 'pl.petugas_id = pt.petugas_id', 'left');
+    $this->db->where('pl.pemeriksaan_id', $examination_id);
+    
+    $examination = $this->db->get()->row_array();
+    
+    if ($examination) {
+        // Attach examination details
+        $details = $this->get_examination_details($examination_id);
+        $examination['examination_details'] = $details;
+        
+        // Add display helpers
+        $examination['is_multiple'] = !empty($details) && count($details) > 1;
+        
+        // For backward compatibility - if no details, create single detail from main jenis
+        if (empty($details) && !empty($examination['jenis_pemeriksaan'])) {
+            $examination['examination_details'] = array(
+                array(
+                    'jenis_pemeriksaan' => $examination['jenis_pemeriksaan'],
+                    'sub_pemeriksaan_display' => '',
+                    'urutan' => 1
+                )
+            );
+        }
+    }
+    
+    return $examination;
+}
+
+/**
+ * Get examination details (FIXED VERSION)
+ */
+public function get_examination_details($examination_id) {
+    if (!is_numeric($examination_id)) {
+        return array();
+    }
+    
+    $this->db->select('pd.*, pl.jenis_pemeriksaan as main_jenis');
+    $this->db->from('pemeriksaan_detail pd');
+    $this->db->join('pemeriksaan_lab pl', 'pd.pemeriksaan_id = pl.pemeriksaan_id', 'left');
+    $this->db->where('pd.pemeriksaan_id', $examination_id);
+    $this->db->order_by('pd.urutan', 'ASC');
+    
+    $details = $this->db->get()->result_array();
+    
+    // Parse sub_pemeriksaan JSON dan tambahkan display label
+    foreach ($details as &$detail) {
+        if (!empty($detail['sub_pemeriksaan'])) {
+            $subs = json_decode($detail['sub_pemeriksaan'], true);
+            if (is_array($subs)) {
+                $detail['sub_pemeriksaan_array'] = $subs;
+                $detail['sub_pemeriksaan_display'] = $this->get_sub_pemeriksaan_labels(
+                    $detail['sub_pemeriksaan'], 
+                    $detail['jenis_pemeriksaan']
+                );
+            } else {
+                $detail['sub_pemeriksaan_array'] = array();
+                $detail['sub_pemeriksaan_display'] = '';
+            }
+        } else {
+            $detail['sub_pemeriksaan_array'] = array();
+            $detail['sub_pemeriksaan_display'] = '';
+        }
+    }
+    
+    return $details;
+}
+
+/**
+ * Get existing results (FIXED VERSION)
+ */
+public function get_existing_results($examination_id, $jenis_pemeriksaan) {
+    if (!is_numeric($examination_id) || empty($jenis_pemeriksaan)) {
+        return null;
+    }
+    
+    $results = null;
+    
+    // Normalize jenis pemeriksaan
+    $jenis = strtolower(trim($jenis_pemeriksaan));
+    
+    switch ($jenis) {
+        case 'kimia darah':
+            $results = $this->get_kimia_darah_results($examination_id);
+            break;
+        case 'hematologi':
+            $results = $this->get_hematologi_results($examination_id);
+            break;
+        case 'urinologi':
+            $results = $this->get_urinologi_results($examination_id);
+            break;
+        case 'serologi':
+        case 'serologi imunologi':
+            $results = $this->get_serologi_results($examination_id);
+            break;
+        case 'tbc':
+            $results = $this->get_tbc_results($examination_id);
+            break;
+        case 'ims':
+            $results = $this->get_ims_results($examination_id);
+            break;
+        case 'mls':
+            $results = $this->get_mls_results($examination_id);
+            break;
+        default:
+            log_message('warning', "Unknown examination type: {$jenis_pemeriksaan}");
+            return null;
+    }
+    
+    return $results;
+}
+
+/**
+ * Check if examination has any results
+ * ADD THIS METHOD if it doesn't exist
+ */
+public function examination_has_results($examination_id) {
+    if (!is_numeric($examination_id)) {
+        return false;
+    }
+    
+    $tables = array(
+        'kimia_darah', 
+        'hematologi', 
+        'urinologi', 
+        'serologi_imunologi', 
+        'tbc', 
+        'ims', 
+        'mls'
+    );
+    
+    foreach ($tables as $table) {
+        $this->db->where('pemeriksaan_id', $examination_id);
+        $count = $this->db->count_all_results($table);
+        if ($count > 0) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+/**
+ * Check if all required results are available for validation
+ */
+public function check_results_completeness($examination_id)
+{
+    $details = $this->get_examination_details($examination_id);
+    
+    if (empty($details)) {
+        return array('complete' => false, 'message' => 'Tidak ada detail pemeriksaan');
+    }
+    
+    $missing = array();
+    
+    foreach ($details as $detail) {
+        $jenis = $detail['jenis_pemeriksaan'];
+        $has_results = $this->check_examination_type_has_results($examination_id, $jenis);
+        
+        if (!$has_results) {
+            $missing[] = $jenis;
+        }
+    }
+    
+    if (empty($missing)) {
+        return array('complete' => true, 'message' => 'Semua hasil tersedia');
+    } else {
+        return array(
+            'complete' => false, 
+            'message' => 'Hasil belum lengkap',
+            'missing' => $missing
+        );
+    }
+}
+/**
+ * Simple validation function - tanpa transaksi kompleks
+ */
+public function simple_validate_examination($examination_id, $validator_id = null) {
+    // Cek apakah sudah divalidasi
+    $examination = $this->db->get_where('pemeriksaan_lab', ['pemeriksaan_id' => $examination_id])->row_array();
+    
+    if (!$examination) {
+        return false;
+    }
+    
+    if ($examination['status_pemeriksaan'] === 'selesai') {
+        return true; // Sudah divalidasi
+    }
+    
+    // Update status
+    $update_data = [
+        'status_pemeriksaan' => 'selesai',
+        'completed_at' => date('Y-m-d H:i:s'),
+        'updated_at' => date('Y-m-d H:i:s')
+    ];
+    
+    $this->db->where('pemeriksaan_id', $examination_id);
+    $update_result = $this->db->update('pemeriksaan_lab', $update_data);
+    
+    if (!$update_result) {
+        log_message('error', "Failed to update examination status: {$examination_id}");
+        return false;
+    }
+    
+    // Buat timeline entry
+    if ($validator_id) {
+        $timeline_data = [
+            'pemeriksaan_id' => $examination_id,
+            'status' => 'Hasil Divalidasi',
+            'keterangan' => 'Hasil pemeriksaan telah divalidasi',
+            'petugas_id' => $validator_id,
+            'tanggal_update' => date('Y-m-d H:i:s')
+        ];
+        $this->db->insert('timeline_progres', $timeline_data);
+    }
+    
+    // Coba buat invoice (opsional, jangan ganggu proses utama)
+    try {
+        $this->create_invoice_after_validation($examination_id, $validator_id);
+    } catch (Exception $e) {
+        log_message('error', 'Invoice creation failed: ' . $e->getMessage());
+        // Lanjutkan saja, invoice bukan prioritas utama
+    }
+    
+    return true;
 }
 }

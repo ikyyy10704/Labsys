@@ -292,6 +292,18 @@
         .results-table tr:hover {
             background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
         }
+
+        .exam-section-header {
+            background: linear-gradient(to right, #eff6ff, #ffffff);
+            color: #1e40af;
+            font-weight: 800;
+            font-size: 11px;
+            padding: 10px 15px !important;
+            text-transform: uppercase;
+            border-bottom: 2px solid #bfdbfe !important;
+            border-top: 1px solid #bfdbfe !important;
+            letter-spacing: 0.5px;
+        }
         
         /* Enhanced Status Indicators */
         .status-normal {
@@ -719,7 +731,14 @@
                 <tbody>
                     <?php 
                     // Display results based on examination type
-                    if (strtolower($examination['jenis_pemeriksaan']) == 'kimia darah'):
+                    $exam_types = array_map('trim', explode(',', strtolower($examination['jenis_pemeriksaan'])));
+                    $has_match = false;
+                    
+                    if (in_array('kimia darah', $exam_types)):
+                        $has_match = true;
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Kimia Darah</td></tr>
+                    <?php
                         $parameters = array(
                             'gula_darah_puasa' => array('name' => 'Gula Darah Puasa', 'unit' => 'mg/dL', 'min' => 70, 'max' => 100),
                             'gula_darah_sewaktu' => array('name' => 'Gula Darah Sewaktu', 'unit' => 'mg/dL', 'min' => 70, 'max' => 140),
@@ -752,7 +771,13 @@
                             endif;
                         endforeach;
                     
-                     elseif (strtolower($examination['jenis_pemeriksaan']) == 'hematologi'):
+                     endif;
+                    
+                    if (in_array('hematologi', $exam_types)):
+                        $has_match = true;
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Hematologi</td></tr>
+                    <?php
                         // Hematologi parameters - DIPERBARUI dengan field baru
                         if (isset($results['hemoglobin']) && $results['hemoglobin'] !== null):
                             $hb_min = ($examination['jenis_kelamin'] == 'L') ? 14.0 : 12.0;
@@ -966,7 +991,13 @@
                     </tr>
                     <?php endif;
                     
-                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'urinologi'):
+                    endif;
+                    
+                    if (in_array('urinologi', $exam_types)):
+                        $has_match = true;
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Urinologi</td></tr>
+                    <?php
                         // Urinologi parameters - DIPERBARUI dengan field baru
                         $urin_parameters = array(
                             'warna' => array('name' => 'Warna', 'unit' => '', 'normal' => 'Kuning muda'),
@@ -1020,7 +1051,10 @@
                             endif;
                         endforeach;
                     
-                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'urinologi'):
+                    endif;
+                    
+                    // Duplicate block disabled
+                    if (false):
                         // Urinologi parameters - DIPERBARUI dengan field baru
                         $urin_parameters = array(
                             'warna' => array('name' => 'Warna', 'unit' => '', 'normal' => 'Kuning muda'),
@@ -1101,7 +1135,13 @@
                     <?php endif;
         
                         
-                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'serologi' || strtolower($examination['jenis_pemeriksaan']) == 'serologi imunologi'):
+                    endif;
+                    
+                    if (in_array('serologi', $exam_types) || in_array('serologi imunologi', $exam_types)):
+                        $has_match = true;
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Serologi & Imunologi</td></tr>
+                    <?php
                         // TAMBAHAN: RDT Antigen
                         if (isset($results['rdt_antigen']) && $results['rdt_antigen'] !== null): 
                             $is_normal = (strtolower($results['rdt_antigen']) == 'negatif');
@@ -1158,7 +1198,13 @@
                             endif;
                         endforeach;
                         
-                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'tbc'):
+                    endif;
+                    
+                    if (in_array('tbc', $exam_types)):
+                        $has_match = true;
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Pemeriksaan TBC</td></tr>
+                    <?php
                         // TBC parameters - PERBAIKAN MAPPING
                         if (isset($results['dahak']) && $results['dahak'] !== null): 
                             $is_normal = (strtolower($results['dahak']) == 'negatif');
@@ -1190,7 +1236,13 @@
                     </tr>
                     <?php endif;
                         
-                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'ims'):
+                    endif;
+                    
+                    if (in_array('ims', $exam_types)):
+                        $has_match = true;
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Infeksi Menular Seksual (IMS)</td></tr>
+                    <?php
                         // TAMBAHAN: Sifilis
                         if (isset($results['sifilis']) && $results['sifilis'] !== null): 
                             $is_normal = (strtolower($results['sifilis']) == 'non-reaktif');
@@ -1238,7 +1290,13 @@
                             endif;
                         endforeach;
                         
-                    elseif (strtolower($examination['jenis_pemeriksaan']) == 'mls'):
+                    endif;
+                    
+                    if (in_array('mls', $exam_types)):
+                        $has_match = true;
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Mikrobiologi / Lainnya (MLS)</td></tr>
+                    <?php
                         // MLS parameters - PERBAIKAN STRUKTUR
                         if (isset($results['jenis_tes']) && $results['jenis_tes'] !== null): ?>
                     <tr>
@@ -1270,7 +1328,12 @@
                     </tr>
                     <?php endif;
                     
-                    else:
+                    endif;
+                    
+                    if (!$has_match):
+                    ?>
+                    <tr><td colspan="4" class="exam-section-header">Pemeriksaan Lainnya</td></tr>
+                    <?php
                         // Generic handling untuk jenis pemeriksaan yang belum terdefinisi
                         if ($results && is_array($results)):
                             foreach ($results as $key => $value):

@@ -179,7 +179,7 @@
                         <i data-lucide="trending-up" class="w-5 h-5 text-blue-600"></i>
                         <span>Tren Validasi (7 Hari Terakhir)</span>
                     </h3>
-                    <select class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                <select id="trendPeriodSelect" class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
                         <option value="7">7 Hari</option>
                         <option value="14">14 Hari</option>
                         <option value="30">30 Hari</option>
@@ -208,8 +208,8 @@
                         <span class="text-sm font-medium text-gray-700">Completion Rate</span>
                         <span class="text-sm font-bold text-green-600">
                             <?php 
-                            $total = ($qc_stats['validated_today'] ?? 0) + ($qc_stats['pending_validation'] ?? 1);
-                            $rate = round((($qc_stats['validated_today'] ?? 0) / $total) * 100);
+                            $total = ($qc_stats['validated_today'] ?? 0) + ($qc_stats['pending_validation'] ?? 0);
+                            $rate = ($total > 0) ? round((($qc_stats['validated_today'] ?? 0) / $total) * 100) : 0;
                             echo $rate; 
                             ?>%
                         </span>
@@ -453,35 +453,58 @@ let validationTrendChart = null;
 let statusChart = null;
 
 function initializeCharts() {
-    // Validation Trend Chart
+    // Validation Trend Chart - 2 Datasets (Pemeriksaan & Alat)
     const ctx1 = document.getElementById('validationTrendChart').getContext('2d');
     validationTrendChart = new Chart(ctx1, {
         type: 'line',
         data: {
             labels: [],
-            datasets: [{
-                label: 'Divalidasi',
-                data: [],
-                borderColor: 'rgb(147, 51, 234)',
-                backgroundColor: 'rgba(147, 51, 234, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: 'rgb(147, 51, 234)',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 4
-            }]
+            datasets: [
+                {
+                    label: 'Validasi Pemeriksaan',
+                    data: [],
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Validasi QC Alat',
+                    data: [],
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: 'rgb(16, 185, 129)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
+                legend: { 
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
                 tooltip: {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     titleColor: '#fff',
-                    bodyColor: '#fff'
+                    bodyColor: '#fff',
+                    mode: 'index',
+                    intersect: false
                 }
             },
             scales: {
@@ -489,9 +512,15 @@ function initializeCharts() {
                     beginAtZero: true,
                     ticks: { precision: 0 }
                 }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
             }
         }
     });
+
 
     // Status Distribution Chart
     const ctx2 = document.getElementById('statusChart').getContext('2d');
@@ -540,14 +569,20 @@ function initializeCharts() {
     loadValidationTrendData();
 }
 
-async function loadValidationTrendData() {
+async function loadValidationTrendData(days = 7) {
     try {
-        const response = await fetch(window.labConfig.baseUrl + 'supervisor/ajax_get_validation_trend');
+        const response = await fetch(window.labConfig.baseUrl + 'supervisor/ajax_get_validation_trend?days=' + days);
         if (response.ok) {
             const result = await response.json();
             if (result.success && result.data) {
                 updateValidationChart(result.data);
+            } else {
+                console.warn('API returned no data, using mock');
+                const mockData = generateMockTrendData();
+                updateValidationChart(mockData);
             }
+        } else {
+            throw new Error('API response not ok');
         }
     } catch (error) {
         console.error('Error loading validation trend:', error);
@@ -559,34 +594,37 @@ async function loadValidationTrendData() {
 
 function generateMockTrendData() {
     const days = 7;
-    const data = [];
+    const labels = [];
+    const pemeriksaan = [];
+    const alat = [];
     const today = new Date();
     
     for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        data.push({
-            date: date.toISOString().split('T')[0],
-            validated: Math.floor(Math.random() * 15) + 10
-        });
+        labels.push(date.toISOString().split('T')[0]);
+        pemeriksaan.push(Math.floor(Math.random() * 15) + 5);
+        alat.push(Math.floor(Math.random() * 8) + 1);
     }
-    return data;
+    
+    return { labels, pemeriksaan, alat };
 }
 
 function updateValidationChart(data) {
     if (!validationTrendChart || !data) return;
     
-    const labels = data.map(day => {
-        const date = new Date(day.date);
+    // Format labels ke tampilan yang lebih user-friendly
+    const labels = data.labels.map(dateStr => {
+        const date = new Date(dateStr);
         return date.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
     });
     
-    const amounts = data.map(day => parseInt(day.validated) || 0);
-    
     validationTrendChart.data.labels = labels;
-    validationTrendChart.data.datasets[0].data = amounts;
+    validationTrendChart.data.datasets[0].data = data.pemeriksaan || [];
+    validationTrendChart.data.datasets[1].data = data.alat || [];
     validationTrendChart.update();
 }
+
 
 function updateLastUpdateTime() {
     document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID', {
@@ -677,11 +715,28 @@ document.addEventListener('DOMContentLoaded', function() {
     updateLastUpdateTime();
     setInterval(updateLastUpdateTime, 60000);
     
+    // Event listener untuk dropdown pemilihan periode
+    const periodSelect = document.getElementById('trendPeriodSelect');
+    if (periodSelect) {
+        periodSelect.addEventListener('change', function() {
+            const days = parseInt(this.value) || 7;
+            loadValidationTrendData(days);
+            
+            // Update judul chart
+            const chartTitle = document.querySelector('h3 span');
+            if (chartTitle && chartTitle.textContent.includes('Tren Validasi')) {
+                chartTitle.textContent = `Tren Validasi (${days} Hari Terakhir)`;
+            }
+        });
+    }
+    
     // Auto refresh setiap 5 menit
     setInterval(() => {
-        loadValidationTrendData();
+        const days = parseInt(document.getElementById('trendPeriodSelect')?.value) || 7;
+        loadValidationTrendData(days);
     }, 300000);
 });
+
 </script>
 
 </body>

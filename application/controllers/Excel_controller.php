@@ -267,6 +267,67 @@ class Excel_controller extends CI_Controller {
     }
 
     // ==========================================
+    // PATIENT REPORTS EXPORT
+    // ==========================================
+
+    public function export_patients()
+    {
+        try {
+            // Get filter parameters if any (though currently the UI doesn't pass filters for export, we prepare for it)
+            $filters = array(
+                'search' => $this->input->get('search'),
+                'gender' => $this->input->get('gender')
+            );
+
+            // Fetch all patients data
+            // Note: Pasien_model->get_all_patients doesn't support filters natively yet based on the file read,
+            // but we can pass them if the model supports it or filter in PHP if dataset is small.
+            // For now, we'll fetch all as requested by "export excel data pasien".
+            $patients = $this->Pasien_model->get_all_patients();
+            
+            if (empty($patients)) {
+                $this->session->set_flashdata('error', 'Tidak ada data pasien untuk diekspor');
+                redirect('pasien/kelola');
+                return;
+            }
+
+            // Filter in PHP if params exist (optional, essentially for search/gender)
+            if (!empty($filters['search']) || !empty($filters['gender'])) {
+                $patients = array_filter($patients, function($patient) use ($filters) {
+                    $match = true;
+                    if (!empty($filters['gender']) && $patient['jenis_kelamin'] != $filters['gender']) {
+                        $match = false;
+                    }
+                    if (!empty($filters['search'])) {
+                        $search = strtolower($filters['search']);
+                        if (strpos(strtolower($patient['nama']), $search) === false && 
+                            strpos($patient['nik'], $search) === false) {
+                            $match = false;
+                        }
+                    }
+                    return $match;
+                });
+            }
+
+            $spreadsheet = $this->_create_patient_excel($patients, $filters);
+            $filename = $this->_generate_filename('Data_Pasien', $filters);
+            $this->_output_excel($spreadsheet, $filename);
+            
+            $this->Admin_model->log_activity(
+                $this->session->userdata('user_id'),
+                'Export data pasien ke Excel: ' . $filename,
+                'pasien',
+                null
+            );
+
+        } catch (Exception $e) {
+            log_message('error', 'Error exporting patients to Excel: ' . $e->getMessage());
+            $this->session->set_flashdata('error', 'Gagal mengekspor data pasien ke Excel: ' . $e->getMessage());
+            redirect('pasien/kelola');
+        }
+    }
+
+    // ==========================================
     // AJAX METHODS
     // ==========================================
 
@@ -456,6 +517,102 @@ class Excel_controller extends CI_Controller {
         $this->_fill_overdue_data($sheet, $overdue_data);
         $this->_apply_overdue_formatting($sheet, count($overdue_data));
         $this->_auto_size_columns($sheet, 'A', 'H');
+        
+        return $spreadsheet;
+    }
+
+    private function _create_patient_excel($patients, $filters)
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        $sheet->setTitle('Data Pasien');
+        
+        $spreadsheet->getProperties()
+            ->setCreator('LabSy - Sistem Informasi Laboratorium')
+            ->setTitle('Laporan Data Pasien')
+            ->setSubject('Export Data Pasien')
+            ->setDescription('Laporan data pasien laboratorium')
+            ->setKeywords('laboratorium pasien export excel')
+            ->setCategory('Reports');
+
+        $this->_create_report_header($sheet, $filters, 'LAPORAN DATA PASIEN LABORATORIUM', 'I'); // I is 9th column
+        
+        // Headers
+        $start_row = 6;
+        $headers = [
+            'A' => 'No', 'B' => 'Nomor Registrasi', 'C' => 'Nama Lengkap',
+            'D' => 'NIK', 'E' => 'Jenis Kelamin', 'F' => 'Tanggal Lahir',
+            'G' => 'Umur', 'H' => 'Alamat', 'I' => 'Telepon'
+        ];
+        
+        foreach ($headers as $column => $header) {
+            $sheet->setCellValue($column . $start_row, $header);
+        }
+        
+        $this->_apply_blue_header_style($sheet, 'A' . $start_row . ':I' . $start_row);
+        $sheet->getRowDimension($start_row)->setRowHeight(25);
+
+        // Data
+        $start_row = 7;
+        $row = $start_row;
+        $no = 1;
+        
+        foreach ($patients as $patient) {
+            $sheet->setCellValue('A' . $row, $no);
+            $sheet->setCellValue('B' . $row, $patient['nomor_registrasi']);
+            $sheet->setCellValue('C' . $row, $patient['nama']);
+            $sheet->setCellValueExplicit('D' . $row, $patient['nik'] ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING); // Force string for NIK
+            $sheet->setCellValue('E' . $row, $this->_format_gender($patient['jenis_kelamin']));
+            $sheet->setCellValue('F' . $row, date('d/m/Y', strtotime($patient['tanggal_lahir'])));
+            $sheet->setCellValue('G' . $row, $patient['umur'] . ' tahun');
+            $sheet->setCellValue('H' . $row, $patient['alamat_domisili'] ?: '-');
+            $sheet->setCellValue('I' . $row, $patient['telepon'] ?: '-');
+            
+            $row++;
+            $no++;
+        }
+
+        // Formatting
+        $data_count = count($patients);
+        if ($data_count > 0) {
+            $end_row = $start_row + $data_count - 1;
+            $data_range = 'A' . $start_row . ':I' . $end_row;
+            
+            $sheet->getStyle($data_range)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ],
+                'alignment' => [
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ]);
+            
+            // Zebra striping
+            for ($i = $start_row; $i <= $end_row; $i++) {
+                if (($i - $start_row) % 2 == 1) {
+                    $sheet->getStyle('A' . $i . ':I' . $i)->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'color' => ['rgb' => 'F8FAFC']
+                        ]
+                    ]);
+                }
+            }
+            
+            // Center alignments for specific columns
+            $sheet->getStyle('A' . $start_row . ':A' . $end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // No
+            $sheet->getStyle('B' . $start_row . ':B' . $end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // No Reg
+            $sheet->getStyle('D' . $start_row . ':D' . $end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // NIK
+            $sheet->getStyle('E' . $start_row . ':E' . $end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // JK
+            $sheet->getStyle('F' . $start_row . ':F' . $end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Tgl Lahir
+            $sheet->getStyle('G' . $start_row . ':G' . $end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Umur
+            
+            $this->_auto_size_columns($sheet, 'A', 'I');
+        }
         
         return $spreadsheet;
     }
@@ -1321,324 +1478,5 @@ class Excel_controller extends CI_Controller {
         
         exit();
     }
-      public function export_patients()
-    {
-        try {
-            $filters = array(
-                'start_date' => $this->input->get('start_date'),
-                'end_date' => $this->input->get('end_date'),
-                'gender' => $this->input->get('gender'),
-                'search' => $this->input->get('search')
-            );
 
-            $patients_data = $this->Excel_model->get_patients_for_export($filters);
-            
-            if (empty($patients_data['patients'])) {
-                $this->session->set_flashdata('error', 'Tidak ada data pasien untuk diekspor');
-                redirect($_SERVER['HTTP_REFERER']);
-                return;
-            }
-
-            $this->_generate_patients_excel($patients_data['patients'], $patients_data['stats'], $filters);
-
-        } catch (Exception $e) {
-            log_message('error', 'Error exporting patients: ' . $e->getMessage());
-            $this->session->set_flashdata('error', 'Gagal mengekspor data pasien: ' . $e->getMessage());
-            redirect($_SERVER['HTTP_REFERER']);
-        }
-    }
-
-    private function _generate_patients_excel($patients, $stats, $filters)
-    {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // ==========================================
-        // SET UP SHEET PROPERTIES
-        // ==========================================
-        
-        $sheet->setTitle('Data Pasien');
-        
-        // Set default font
-        $spreadsheet->getDefaultStyle()->getFont()->setName('Arial')->setSize(10);
-        
-        // Set document properties
-        $spreadsheet->getProperties()
-            ->setCreator('LabSy - Sistem Informasi Laboratorium')
-            ->setTitle('Laporan Data Pasien')
-            ->setSubject('Export Data Pasien')
-            ->setDescription('Laporan data pasien laboratorium')
-            ->setKeywords('laboratorium pasien export excel')
-            ->setCategory('Patient Reports');
-        
-        // ==========================================
-        // HEADER SECTION
-        // ==========================================
-        
-        // Logo and Title
-        $sheet->mergeCells('A1:T3');
-        $sheet->setCellValue('A1', 'LAPORAN DATA PASIEN');
-        $sheet->getStyle('A1')->getFont()->setSize(20)->setBold(true);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('2563EB');
-        $sheet->getStyle('A1')->getFont()->getColor()->setRGB('FFFFFF');
-        
-        // Lab Information
-        $row = 5;
-        $sheet->setCellValue("A{$row}", 'Laboratorium LabSy');
-        $sheet->getStyle("A{$row}")->getFont()->setSize(14)->setBold(true);
-        
-        $row++;
-        $sheet->setCellValue("A{$row}", 'Jl. Tata Bumi No.3, Area Sawah, Banyuraden, Kec. Gamping, Kabupaten Sleman, DI Yogyakarta 55293');
-        
-        $row++;
-        $sheet->setCellValue("A{$row}", 'Telepon: (0274) 617601 | Email: info@labsy.com');
-        
-        // Export Information
-        $row += 2;
-        $sheet->setCellValue("A{$row}", 'Tanggal Export: ' . date('d F Y, H:i:s'));
-        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-        
-        $row++;
-        $exported_by = $this->session->userdata('username');
-        $sheet->setCellValue("A{$row}", 'Diekspor oleh: ' . $exported_by);
-        
-        // Filter Information
-        if (!empty($filters['start_date']) || !empty($filters['end_date']) || !empty($filters['gender']) || !empty($filters['search'])) {
-            $row += 2;
-            $sheet->setCellValue("A{$row}", 'FILTER YANG DITERAPKAN:');
-            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->getColor()->setRGB('2563EB');
-            
-            if (!empty($filters['start_date'])) {
-                $row++;
-                $sheet->setCellValue("A{$row}", '• Tanggal Mulai: ' . date('d F Y', strtotime($filters['start_date'])));
-            }
-            
-            if (!empty($filters['end_date'])) {
-                $row++;
-                $sheet->setCellValue("A{$row}", '• Tanggal Akhir: ' . date('d F Y', strtotime($filters['end_date'])));
-            }
-            
-            if (!empty($filters['gender'])) {
-                $gender_text = $filters['gender'] === 'L' ? 'Laki-laki' : 'Perempuan';
-                $row++;
-                $sheet->setCellValue("A{$row}", '• Jenis Kelamin: ' . $gender_text);
-            }
-            
-            if (!empty($filters['search'])) {
-                $row++;
-                $sheet->setCellValue("A{$row}", '• Pencarian: ' . $filters['search']);
-            }
-        }
-        
-        // ==========================================
-        // STATISTICS SECTION
-        // ==========================================
-        
-        $row += 3;
-        $sheet->setCellValue("A{$row}", 'STATISTIK DATA');
-        $sheet->getStyle("A{$row}")->getFont()->setSize(12)->setBold(true)->getColor()->setRGB('2563EB');
-        
-        $row++;
-        $stats_data = [
-            ['Total Pasien', $stats['total']],
-            ['Pendaftar Hari Ini', $stats['today']],
-            ['Laki-laki', $stats['male']],
-            ['Perempuan', $stats['female']]
-        ];
-        
-        foreach ($stats_data as $stat) {
-            $row++;
-            $sheet->setCellValue("A{$row}", $stat[0] . ':');
-            $sheet->setCellValue("B{$row}", $stat[1]);
-            $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-        }
-        
-        // ==========================================
-        // TABLE HEADERS
-        // ==========================================
-        
-        $row += 3;
-        $header_row = $row;
-        
-        $headers = [
-            'A' => 'No',
-            'B' => 'No. Registrasi',
-            'C' => 'Nama Lengkap',
-            'D' => 'NIK',
-            'E' => 'Jenis Kelamin',
-            'F' => 'Tempat Lahir',
-            'G' => 'Tanggal Lahir',
-            'H' => 'Umur',
-            'I' => 'Alamat Domisili',
-            'J' => 'Pekerjaan',
-            'K' => 'Telepon',
-            'L' => 'Kontak Darurat',
-            'M' => 'Riwayat Penyakit',
-            'N' => 'Permintaan Pemeriksaan',
-            'O' => 'Dokter Perujuk',
-            'P' => 'Asal Rujukan',
-            'Q' => 'No. Rujukan',
-            'R' => 'Tgl. Rujukan',
-            'S' => 'Diagnosis Awal',
-            'T' => 'Tanggal Daftar'
-        ];
-        
-        foreach ($headers as $col => $header) {
-            $sheet->setCellValue($col . $header_row, $header);
-        }
-        
-        // Style headers with blue-600 theme
-        $headerRange = 'A' . $header_row . ':T' . $header_row;
-        $sheet->getStyle($headerRange)->applyFromArray([
-            'font' => [
-                'bold' => true,
-                'color' => ['rgb' => 'FFFFFF'],
-                'size' => 11
-            ],
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '2563EB']
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => '000000']
-                ]
-            ]
-        ]);
-        
-        // ==========================================
-        // PATIENT DATA
-        // ==========================================
-        
-        $row++;
-        $data_start_row = $row;
-        $no = 1;
-        
-        foreach ($patients as $patient) {
-            $sheet->setCellValue("A{$row}", $no);
-            $sheet->setCellValue("B{$row}", $patient['nomor_registrasi'] ?: '-');
-            $sheet->setCellValue("C{$row}", $patient['nama']);
-            $sheet->setCellValue("D{$row}", $patient['nik'] ?: '-');
-            $sheet->setCellValue("E{$row}", $patient['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan');
-            $sheet->setCellValue("F{$row}", $patient['tempat_lahir'] ?: '-');
-            $sheet->setCellValue("G{$row}", $patient['tanggal_lahir'] ? date('d/m/Y', strtotime($patient['tanggal_lahir'])) : '-');
-            $sheet->setCellValue("H{$row}", $patient['umur'] ? $patient['umur'] . ' tahun' : '-');
-            $sheet->setCellValue("I{$row}", $patient['alamat_domisili'] ?: '-');
-            $sheet->setCellValue("J{$row}", $patient['pekerjaan'] ?: '-');
-            $sheet->setCellValue("K{$row}", $patient['telepon'] ?: '-');
-            $sheet->setCellValue("L{$row}", $patient['kontak_darurat'] ?: '-');
-            $sheet->setCellValue("M{$row}", $patient['riwayat_pasien'] ?: '-');
-            $sheet->setCellValue("N{$row}", $patient['permintaan_pemeriksaan'] ?: '-');
-            $sheet->setCellValue("O{$row}", $patient['dokter_perujuk'] ?: '-');
-            $sheet->setCellValue("P{$row}", $patient['asal_rujukan'] ?: '-');
-            $sheet->setCellValue("Q{$row}", $patient['nomor_rujukan'] ?: '-');
-            $sheet->setCellValue("R{$row}", $patient['tanggal_rujukan'] ? date('d/m/Y', strtotime($patient['tanggal_rujukan'])) : '-');
-            $sheet->setCellValue("S{$row}", $patient['diagnosis_awal'] ?: '-');
-            $sheet->setCellValue("T{$row}", date('d/m/Y H:i', strtotime($patient['created_at'])));
-            
-            $no++;
-            $row++;
-        }
-        
-        $data_end_row = $row - 1;
-        
-        // ==========================================
-        // STYLING DATA ROWS
-        // ==========================================
-        
-        if ($data_end_row >= $data_start_row) {
-            $dataRange = 'A' . $data_start_row . ':T' . $data_end_row;
-            
-            // Apply borders to all data
-            $sheet->getStyle($dataRange)->applyFromArray([
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => 'CCCCCC']
-                    ]
-                ],
-                'alignment' => [
-                    'vertical' => Alignment::VERTICAL_TOP,
-                    'wrapText' => true
-                ]
-            ]);
-            
-            // Alternating row colors
-            for ($i = $data_start_row; $i <= $data_end_row; $i++) {
-                if (($i - $data_start_row) % 2 == 1) {
-                    $sheet->getStyle('A' . $i . ':T' . $i)->getFill()
-                          ->setFillType(Fill::FILL_SOLID)
-                          ->getStartColor()->setRGB('F8FAFC');
-                }
-            }
-            
-            // Center align specific columns
-            $sheet->getStyle('A' . $data_start_row . ':A' . $data_end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('E' . $data_start_row . ':E' . $data_end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('G' . $data_start_row . ':G' . $data_end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('H' . $data_start_row . ':H' . $data_end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('R' . $data_start_row . ':R' . $data_end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('T' . $data_start_row . ':T' . $data_end_row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        }
-        
-        // ==========================================
-        // SUMMARY SECTION
-        // ==========================================
-        
-        $row += 2;
-        $sheet->setCellValue("A{$row}", 'RINGKASAN');
-        $sheet->getStyle("A{$row}")->getFont()->setSize(12)->setBold(true)->getColor()->setRGB('2563EB');
-        
-        $row++;
-        $sheet->setCellValue("A{$row}", "Total data yang diekspor: " . count($patients) . " pasien");
-        $sheet->getStyle("A{$row}")->getFont()->setBold(true);
-        
-        // ==========================================
-        // AUTO SIZE COLUMNS
-        // ==========================================
-        
-        foreach (range('A', 'T') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-        
-        // Set minimum widths for specific columns
-        $sheet->getColumnDimension('C')->setWidth(25); // Nama
-        $sheet->getColumnDimension('I')->setWidth(30); // Alamat
-        $sheet->getColumnDimension('M')->setWidth(25); // Riwayat
-        $sheet->getColumnDimension('N')->setWidth(25); // Permintaan
-        $sheet->getColumnDimension('S')->setWidth(25); // Diagnosis
-        
-        // Set row heights
-        $sheet->getDefaultRowDimension()->setRowHeight(20);
-        
-        // ==========================================
-        // DOWNLOAD FILE
-        // ==========================================
-        
-        $filename = 'Data_Pasien_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        header('Cache-Control: max-age=1');
-        
-        $writer = new Xlsx($spreadsheet);
-        $writer->save('php://output');
-        
-        // Log activity
-        $this->Admin_model->log_activity(
-            $this->session->userdata('user_id'),
-            'Data pasien diekspor ke Excel: ' . $filename,
-            'pasien',
-            null
-        );
-        
-        exit();
-    }
 }

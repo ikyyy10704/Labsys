@@ -200,7 +200,7 @@
                     </span>
                     <?php endif; ?>
                 </a>
-                   <a href="<?= base_url('laboratorium/sample_data') ?>" 
+                   <a href="<?= base_url('sample_data') ?>" 
                    class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'laboratorium' && $this->uri->segment(2) == 'sample_data') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
                     <div class="flex items-center space-x-3">
                         <i data-lucide="test-tube" class="w-5 h-5"></i>
@@ -228,6 +228,21 @@
                     </span>
                     <?php endif; ?>
                 </a>
+                <a href="<?= base_url('sample_inventory') ?>" 
+       class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'sample_inventory') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
+        <div class="flex items-center space-x-3">
+            <i data-lucide="flask-conical" class="w-5 h-5"></i>
+            <span class="font-medium">Inventory Sampel</span>
+        </div>
+    </a>
+                
+                <a href="<?= base_url('quality_control') ?>" 
+       class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'quality_control') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
+        <div class="flex items-center space-x-3">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+            <span class="font-medium">Quality Control</span>
+        </div>
+    </a>
             </div>
             
         <!-- supevisor ROLE -->
@@ -243,31 +258,55 @@
                 </div>
             </a>
 
-                  <!-- RESULT MANAGEMENT Section -->
+                  <!-- VALIDASI PEMERIKSAAN Section -->
             <div class="pt-4">
                 <div class="px-4 py-2 mb-2">
                     <p class="text-xs font-semibold text-blue-200 uppercase tracking-wider">
-                        Manajemen Hasil
+                        Validasi Pemeriksaan
                     </p>
                 </div>
 
-             <div>
-             <a href="<?= base_url('Supervisor/quality_control') ?>" 
-                   class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'laboratorium' && $this->uri->segment(2) == 'sample_data') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
+                <a href="<?= base_url('Supervisor/quality_control') ?>" 
+                   class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'Supervisor' && $this->uri->segment(2) == 'quality_control') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
                     <div class="flex items-center space-x-3">
                         <i data-lucide="check-circle" class="w-5 h-5"></i>
-                        <span class="font-medium">Validasi</span>
+                        <span class="font-medium">Validasi Lab Results</span>
                     </div>
                 </a>
-             </div>
-             <a href="<?= base_url('Supervisor/histori') ?>" 
-                   class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'laboratorium' && $this->uri->segment(2) == 'sample_data') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
+                
+                <a href="<?= base_url('Supervisor/histori') ?>" 
+                   class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'Supervisor' && $this->uri->segment(2) == 'histori') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
                     <div class="flex items-center space-x-3">
                         <i data-lucide="history" class="w-5 h-5"></i>
                         <span class="font-medium">Histori Validasi</span>
                     </div>
                 </a>
-             </div>
+            </div>
+
+            <!-- QUALITY CONTROL ALAT Section -->
+            <div class="pt-4">
+                <div class="px-4 py-2 mb-2">
+                    <p class="text-xs font-semibold text-blue-200 uppercase tracking-wider">
+                        Quality Control Alat
+                    </p>
+                </div>
+
+                <a href="<?= base_url('Supervisor/qc_alat_validation') ?>" 
+                   class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'Supervisor' && $this->uri->segment(2) == 'qc_alat_validation') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                        <span class="font-medium">Validasi QC Alat</span>
+                    </div>
+                </a>
+                
+                <a href="<?= base_url('supervisor/qc_alat_history') ?>" 
+                   class="nav-link flex items-center px-4 py-3 rounded-lg transition-all duration-200 <?= ($this->uri->segment(1) == 'supervisor' && $this->uri->segment(2) == 'qc_alat_history') ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-white hover:bg-white hover:bg-opacity-10' ?>">
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="file-clock" class="w-5 h-5"></i>
+                        <span class="font-medium">Histori QC Alat</span>
+                    </div>
+                </a>
+            </div>
         <?php endif; ?>
     </nav>
 
@@ -390,7 +429,7 @@ if (!document.querySelector('#logout-modal-style')) {
 </script>
 
 <!-- Main Content Area with Mobile Menu Button -->
-<main class="main-content ml-0 md:ml-64 min-h-screen bg-gray-50 transition-all duration-300">
+<main class="main-content ml-0 md:ml-64 min-h-screen bg-gray-50 transition-all duration-300 flex flex-col">
     <!-- Mobile Menu Button -->
     <div class="md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
         <div class="flex items-center justify-between p-4">

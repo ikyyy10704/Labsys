@@ -271,7 +271,7 @@
 <!-- Main Content -->
 <div class="p-6 space-y-6">
 <!-- KPI Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Total Pemeriksaan -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-1">
             <div class="flex items-center justify-between">
@@ -312,25 +312,7 @@
             </div>
         </div>
         
-        <!-- Total Pendapatan -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-4">
-            <div class="flex items-center justify-between">
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-600 mb-2">Pendapatan</p>
-                    <p id="kpi-revenue" class="text-2xl font-bold text-emerald-600 mb-1">
-                        <?php if (isset($dashboard_data['kpi']['monthly_revenue'])): ?>
-                            <?php echo 'Rp ' . number_format($dashboard_data['kpi']['monthly_revenue'], 0, ',', '.'); ?>
-                        <?php else: ?>
-                            <span class="skeleton rounded w-24 h-8 inline-block"></span>
-                        <?php endif; ?>
-                    </p>
-                    <p class="text-xs text-gray-500">Bulan ini</p>
-                </div>
-                <div class="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="dollar-sign" class="w-7 h-7 text-emerald-600"></i>
-                </div>
-            </div>
-        </div>
+        <!-- Total Pendapatan Removed -->
         
         <!-- Users Aktif -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow" id="kpi-card-5">

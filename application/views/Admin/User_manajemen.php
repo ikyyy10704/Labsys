@@ -442,6 +442,23 @@
     </div>
 </div>
 
+    <!-- Custom Confirmation Modal -->
+    <!-- Modal HTML as requested by user, with added ID for dynamic content -->
+    <div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
+        <div class="bg-white rounded-xl p-6 w-96 fade-in transform scale-100 transition-all">
+            <h2 class="text-lg font-semibold" id="modal-title">Konfirmasi</h2>
+            <p class="text-sm text-gray-600 mt-2" id="modal-message">
+                Apakah Anda yakin ingin menonaktifkan pengguna ini?
+            </p>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeModal()" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition-colors">Batal</button>
+                <button id="modal-confirm-btn" onclick="confirmAction()" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm">
+                    Nonaktifkan
+                </button>
+            </div>
+        </div>
+    </div>
+
 <!-- Edit User Modal -->
 <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -465,9 +482,38 @@
 // Global variables
 let allUsers = [];
 let userStats = {};
+let currentConfirmCallback = null;
+
+// Modal Logic
+function openModal(title, message, confirmText, confirmCallback, confirmColorClass = 'bg-red-600') {
+    document.getElementById('modal-title').textContent = title || 'Konfirmasi';
+    document.getElementById('modal-message').textContent = message || 'Apakah Anda yakin?';
+    
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    confirmBtn.textContent = confirmText || 'Konfirmasi';
+    
+    // Reset and add color class. Removed hardcoded text-white to allow "neon" style
+    confirmBtn.className = `px-4 py-2 rounded font-medium transition-colors shadow-sm ${confirmColorClass}`;
+    
+    currentConfirmCallback = confirmCallback;
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    currentConfirmCallback = null;
+}
+
+function confirmAction() {
+    if (currentConfirmCallback) {
+        currentConfirmCallback();
+    }
+    closeModal();
+}
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
+    closeModal(); // Ensure hidden on load
     lucide.createIcons();
     loadUsersData();
     
@@ -655,26 +701,30 @@ function renderUsersTable(users) {
 
 // Reset password function
 async function resetPassword(userId) {
-    if (!confirm('Apakah Anda yakin ingin mereset password pengguna ini ke default?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`<?= base_url("admin/ajax_reset_password") ?>/${userId}`, {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', data.message + (data.new_password ? ' Password baru: ' + data.new_password : ''));
-        } else {
-            showFlashMessage('error', data.message);
-        }
-    } catch (error) {
-        console.error('Error resetting password:', error);
-        showFlashMessage('error', 'Gagal mereset password');
-    }
+    openModal(
+        'Reset Password',
+        'Apakah Anda yakin ingin mereset password pengguna ini ke default?',
+        'Reset Password',
+        async () => {
+            try {
+                const response = await fetch(`<?= base_url("admin/ajax_reset_password") ?>/${userId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', data.message + (data.new_password ? ' Password baru: ' + data.new_password : ''));
+                } else {
+                    showFlashMessage('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error resetting password:', error);
+                showFlashMessage('error', 'Gagal mereset password');
+            }
+        },
+        'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-transparent'
+    );
 }
 
 // Toggle add form
@@ -939,53 +989,65 @@ function closeEditModal() {
 // Toggle user status
 async function toggleUserStatus(userId, currentStatus) {
     const action = currentStatus == 1 ? 'menonaktifkan' : 'mengaktifkan';
+    const confirmBtnText = currentStatus == 1 ? 'Nonaktifkan' : 'Aktifkan';
+    const colorClass = currentStatus == 1 
+        ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-transparent' 
+        : 'bg-green-100 text-green-700 hover:bg-green-200 border border-transparent';
     
-    if (!confirm(`Apakah Anda yakin ingin ${action} pengguna ini?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`<?= base_url("admin/ajax_toggle_user_status") ?>/${userId}`, {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', data.message);
-            loadUsersData();
-        } else {
-            showFlashMessage('error', data.message);
-        }
-    } catch (error) {
-        console.error('Error toggling user status:', error);
-        showFlashMessage('error', 'Gagal mengubah status pengguna');
-    }
+    openModal(
+        'Konfirmasi Status',
+        `Apakah Anda yakin ingin ${action} pengguna ini?`,
+        confirmBtnText,
+        async () => {
+            try {
+                const response = await fetch(`<?= base_url("admin/ajax_toggle_user_status") ?>/${userId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', data.message);
+                    loadUsersData();
+                } else {
+                    showFlashMessage('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error toggling user status:', error);
+                showFlashMessage('error', 'Gagal mengubah status pengguna');
+            }
+        },
+        colorClass
+    );
 }
 
 // Delete user
 async function deleteUser(userId) {
-    if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`<?= base_url("admin/ajax_delete_user") ?>/${userId}`, {
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', data.message);
-            loadUsersData();
-        } else {
-            showFlashMessage('error', data.message);
-        }
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        showFlashMessage('error', 'Gagal menghapus pengguna');
-    }
+    openModal(
+        'Hapus Pengguna',
+        'Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.',
+        'Hapus Permanen',
+        async () => {
+            try {
+                const response = await fetch(`<?= base_url("admin/ajax_delete_user") ?>/${userId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', data.message);
+                    loadUsersData();
+                } else {
+                    showFlashMessage('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showFlashMessage('error', 'Gagal menghapus pengguna');
+            }
+        },
+        'bg-red-100 text-red-700 hover:bg-red-200 border border-transparent'
+    );
 }
 
 // Export users

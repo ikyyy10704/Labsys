@@ -421,6 +421,7 @@ class Admin extends CI_Controller {
             $data['statistics'] = $this->Admin_model->get_activity_statistics(7);
             $data['users'] = $this->Admin_model->get_all_users_for_filter();
             $data['tables'] = $this->Admin_model->get_activity_tables();
+            $data['today_login_logout'] = $this->Admin_model->get_today_login_logout_count();
             
             $data['pagination'] = array(
                 'current_page' => $page,

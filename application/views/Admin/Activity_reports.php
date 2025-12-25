@@ -156,9 +156,9 @@
                 <div>
                     <p class="text-sm font-medium text-gray-600">Login/Logout</p>
                     <p id="stat-login" class="text-2xl font-bold text-green-600">
-                        <?= isset($statistics['by_type']['Login/Logout']) ? number_format($statistics['by_type']['Login/Logout']) : '0' ?>
+                        <?= isset($today_login_logout) ? number_format($today_login_logout) : '0' ?>
                     </p>
-                    <p class="text-xs text-gray-500 mt-1">Aktivitas autentikasi</p>
+                    <p class="text-xs text-gray-500 mt-1">Aktivitas hari ini</p>
                 </div>
                 <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                     <i data-lucide="log-in" class="w-6 h-6 text-green-600"></i>
@@ -619,33 +619,38 @@
 </div>
 
 <!-- Clear Old Logs Modal -->
-<div id="clear-logs-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-md w-full">
-        <div class="p-6 border-b border-gray-100">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900">Hapus Log Aktivitas Lama</h3>
-                <button onclick="closeClearLogsModal()" class="text-gray-400 hover:text-gray-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
+<div id="clear-logs-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-all duration-300">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl transform transition-all duration-300">
         <div class="p-6">
-            <p class="text-gray-600 mb-4">Hapus log aktivitas yang lebih lama dari:</p>
-            <select id="clear-days" class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4">
-                <option value="30">30 hari</option>
-                <option value="60">60 hari</option>
-                <option value="90">90 hari</option>
-                <option value="180">6 bulan</option>
-                <option value="365">1 tahun</option>
-            </select>
-            <div class="flex items-center justify-end space-x-4">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="p-3 bg-red-50 rounded-full">
+                    <i data-lucide="trash-2" class="w-6 h-6 text-red-500"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">Hapus Log Lama</h3>
+            </div>
+            
+            <p class="text-gray-600 mb-4">Pilih batas waktu penghapusan log aktivitas:</p>
+            
+            <div class="relative mb-6">
+                <select id="clear-days" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                    <option value="30">Lebih dari 30 hari yang lalu</option>
+                    <option value="60">Lebih dari 60 hari yang lalu</option>
+                    <option value="90">Lebih dari 90 hari yang lalu</option>
+                    <option value="180">Lebih dari 6 bulan yang lalu</option>
+                    <option value="365">Lebih dari 1 tahun yang lalu</option>
+                </select>
+                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none"></i>
+            </div>
+            
+            <div class="flex items-center justify-end space-x-3">
                 <button onclick="closeClearLogsModal()" 
-                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                        class="px-4 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
                     Batal
                 </button>
                 <button onclick="clearOldLogs()" 
-                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200">
-                    Hapus
+                        class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 border border-transparent rounded-lg flex items-center space-x-2 transition-all duration-200">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Lanjut Hapus</span>
                 </button>
             </div>
         </div>
@@ -661,6 +666,18 @@ document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();
     initializeCharts();
     ensureFullwidthLayout();
+    
+    // Check for persisted flash message
+    const flashMsg = sessionStorage.getItem('flash_message');
+    if (flashMsg) {
+        try {
+            const { type, message } = JSON.parse(flashMsg);
+            showFlashMessage(type, message);
+            sessionStorage.removeItem('flash_message');
+        } catch (e) {
+            console.error('Error parsing flash message', e);
+        }
+    }
     
     // Initialize filter form
     document.getElementById('filter-form').addEventListener('submit', function(e) {
@@ -833,29 +850,34 @@ function refreshData() {
 }
 
 // Delete log
-async function deleteLog(logId) {
-    if (!confirm('Apakah Anda yakin ingin menghapus log aktivitas ini?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`<?= base_url("admin/ajax_delete_activity_log") ?>/${logId}`, {
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', data.message);
-            refreshData();
-        } else {
-            showFlashMessage('error', data.message);
-        }
-    } catch (error) {
-        console.error('Error deleting log:', error);
-        showFlashMessage('error', 'Gagal menghapus log aktivitas');
-    }
+function deleteLog(logId) {
+    openModal(
+        'Hapus Log Aktivitas',
+        'Apakah Anda yakin ingin menghapus log aktivitas ini?',
+        'Ya, Hapus',
+        async () => {
+            try {
+                const response = await fetch(`<?= base_url("admin/ajax_delete_activity_log") ?>/${logId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', data.message);
+                    refreshData();
+                } else {
+                    showFlashMessage('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting log:', error);
+                showFlashMessage('error', 'Gagal menghapus log aktivitas');
+            }
+        },
+        'bg-red-100 text-red-700 hover:bg-red-200 border border-transparent'
+    );
 }
+
 
 // Clear old logs
 function confirmClearOldLogs() {
@@ -867,36 +889,44 @@ function closeClearLogsModal() {
     ensureFullwidthLayout();
 }
 
-async function clearOldLogs() {
+function clearOldLogs() {
     const days = document.getElementById('clear-days').value;
     
-    if (!confirm(`Apakah Anda yakin ingin menghapus semua log aktivitas yang lebih lama dari ${days} hari?`)) {
-        return;
-    }
+    // Close the selection modal first
+    closeClearLogsModal();
     
-    try {
-        const response = await fetch('<?= base_url("admin/ajax_clear_old_activity_logs") ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `days=${days}`
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', data.message);
-            closeClearLogsModal();
-            refreshData();
-        } else {
-            showFlashMessage('error', data.message);
-        }
-    } catch (error) {
-        console.error('Error clearing old logs:', error);
-        showFlashMessage('error', 'Gagal menghapus log aktivitas lama');
-    }
+    // Open confirmation modal
+    openModal(
+        'Konfirmasi Hapus Massal',
+        `Apakah Anda PASTI ingin menghapus semua log aktivitas yang lebih lama dari ${days} hari? Tindakan ini tidak dapat dibatalkan.`,
+        'Ya, Hapus Permanen',
+        async () => {
+            try {
+                const response = await fetch('<?= base_url("admin/ajax_clear_old_activity_logs") ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `days=${days}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', data.message);
+                    refreshData();
+                } else {
+                    showFlashMessage('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error clearing old logs:', error);
+                showFlashMessage('error', 'Gagal menghapus log aktivitas lama');
+            }
+        },
+        'bg-red-100 text-red-700 hover:bg-red-200 border border-transparent'
+    );
 }
+
 
 // Utility function - konsisten dengan user_manajemen
 function showFlashMessage(type, message) {
@@ -948,11 +978,103 @@ const observer = new MutationObserver(function(mutations) {
 });
 
 // Start observing
+// Start observing
 observer.observe(document.body, {
     childList: true,
     subtree: true
 });
+
+// Custom Modal Functions
+function openModal(title, message, confirmText, confirmCallback, confirmBtnClass) {
+    document.getElementById('custom-modal-title').textContent = title;
+    document.getElementById('custom-modal-message').textContent = message;
+    
+    const confirmBtn = document.getElementById('custom-modal-confirm-btn');
+    confirmBtn.querySelector('span').textContent = confirmText;
+    
+    // Reset classes and add new ones
+    confirmBtn.className = `px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${confirmBtnClass || 'bg-blue-600 hover:bg-blue-700 text-white'}`;
+    
+    // Store callback
+    window.currentModalCallback = confirmCallback;
+    
+    const modal = document.getElementById('custom-modal');
+    modal.classList.remove('hidden');
+    
+    // Add animation
+    const modalContent = modal.querySelector('div.bg-white');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    ensureFullwidthLayout();
+}
+
+function closeModal() {
+    const modal = document.getElementById('custom-modal');
+    const modalContent = modal.querySelector('div.bg-white');
+    
+    modalContent.classList.remove('scale-100', 'opacity-100');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        window.currentModalCallback = null;
+        ensureFullwidthLayout();
+    }, 200);
+}
+
+async function confirmAction() {
+    if (window.currentModalCallback) {
+        const btn = document.getElementById('custom-modal-confirm-btn');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>Processing...';
+        btn.disabled = true;
+        
+        try {
+            await window.currentModalCallback();
+            closeModal();
+        } catch (error) {
+            console.error('Error in modal action:', error);
+        } finally {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }
+    }
+}
 </script>
+
+<!-- Custom Modal -->
+<div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm transition-all duration-300">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl transform transition-all duration-300 scale-95 opacity-0">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="p-3 bg-red-50 rounded-full">
+                    <i data-lucide="alert-circle" class="w-6 h-6 text-red-500"></i>
+                </div>
+                <h3 id="custom-modal-title" class="text-lg font-bold text-gray-900">Konfirmasi</h3>
+            </div>
+            
+            <p id="custom-modal-message" class="text-gray-600 mb-8 leading-relaxed">
+                Apakah Anda yakin ingin melakukan tindakan ini?
+            </p>
+            
+            <div class="flex items-center justify-end space-x-3">
+                <button onclick="closeModal()" 
+                        class="px-4 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
+                    Batal
+                </button>
+                <button id="custom-modal-confirm-btn" onclick="confirmAction()"
+                        class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 border border-transparent rounded-lg flex items-center space-x-2 transition-all duration-200">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Ya, Lanjutkan</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

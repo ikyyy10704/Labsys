@@ -2588,11 +2588,15 @@ public function get_activity_statistics($date_range = 7) {
         $sql = "
             SELECT 
                 CASE 
-                    WHEN activity LIKE '%login%' THEN 'Login/Logout'
-                    WHEN activity LIKE '%created%' OR activity LIKE '%added%' THEN 'Create'
-                    WHEN activity LIKE '%updated%' OR activity LIKE '%modified%' THEN 'Update'
-                    WHEN activity LIKE '%deleted%' OR activity LIKE '%removed%' THEN 'Delete'
-                    WHEN activity LIKE '%accessed%' THEN 'Access'
+                    WHEN LOWER(activity) LIKE '%login%' OR LOWER(activity) LIKE '%logout%' 
+                         OR LOWER(activity) LIKE '%masuk%' OR LOWER(activity) LIKE '%keluar%' THEN 'Login/Logout'
+                    WHEN LOWER(activity) LIKE '%created%' OR LOWER(activity) LIKE '%added%' 
+                         OR LOWER(activity) LIKE '%ditambahkan%' OR LOWER(activity) LIKE '%baru%' THEN 'Create'
+                    WHEN LOWER(activity) LIKE '%updated%' OR LOWER(activity) LIKE '%modified%' 
+                         OR LOWER(activity) LIKE '%diperbarui%' OR LOWER(activity) LIKE '%edit%' THEN 'Update'
+                    WHEN LOWER(activity) LIKE '%deleted%' OR LOWER(activity) LIKE '%removed%' 
+                         OR LOWER(activity) LIKE '%dihapus%' OR LOWER(activity) LIKE '%hapus%' THEN 'Delete'
+                    WHEN LOWER(activity) LIKE '%accessed%' OR LOWER(activity) LIKE '%mengakses%' THEN 'Access'
                     ELSE 'Other'
                 END as activity_type,
                 COUNT(*) as count
@@ -2668,6 +2672,35 @@ public function get_activity_statistics($date_range = 7) {
             'daily_trend' => array(),
             'most_active_users' => array()
         );
+    }
+}
+
+/**
+ * Get today's login/logout count
+ */
+public function get_today_login_logout_count() {
+    try {
+        // Gunakan range waktu penuh untuk hari ini
+        $start_date = date('Y-m-d 00:00:00');
+        $end_date = date('Y-m-d 23:59:59');
+        
+        $this->db->where('created_at >=', $start_date);
+        $this->db->where('created_at <=', $end_date);
+        
+        $this->db->group_start();
+        $this->db->like('activity', 'login');
+        $this->db->or_like('activity', 'logout');
+        $this->db->or_like('activity', 'logged in');
+        $this->db->or_like('activity', 'logged out');
+        $this->db->or_like('activity', 'masuk');
+        $this->db->or_like('activity', 'keluar');
+        $this->db->group_end();
+        
+        return $this->db->count_all_results('activity_log');
+        
+    } catch (Exception $e) {
+        log_message('error', 'Error getting today login/logout count: ' . $e->getMessage());
+        return 0;
     }
 }
 

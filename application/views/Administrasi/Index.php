@@ -5,122 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($title) ? $title : 'Dashboard Administrasi'; ?> - LabSy</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* Custom scrollbar - sama dengan admin dashboard */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        .loading {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin-top: 1rem;
-        }
-
-        .pulse-update {
-            animation: pulse 0.5s ease-in-out;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .notification {
-            max-width: 400px;
-            min-width: 320px;
-            font-size: 14px;
-            line-height: 1.5;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .notification-success {
-            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
-            border-color: #22c55e;
-        }
+        .chart-container { position: relative; height: 320px; }
         
-        .notification-error {
-            background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%);
-            border-color: #ef4444;
-        }
-        
-        .notification-warning {
-            background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
-            border-color: #f59e0b;
-        }
-        
-        .notification-info {
-            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-            border-color: #3b82f6;
-        }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
 
         .skeleton {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
             animation: loading 1.5s infinite;
         }
+        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-progress { background: #dbeafe; color: #1e40af; }
+        .status-selesai { background: #d1fae5; color: #065f46; }
+        .status-lunas { background: #d1fae5; color: #065f46; }
+        .status-belum { background: #fee2e2; color: #991b1b; }
+        .status-cicilan { background: #fef3c7; color: #92400e; }
 
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
+        .notification {
+            max-width: 400px;
+            backdrop-filter: blur(10px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
-
-        /* Status badges */
-        .status-pending { @apply bg-yellow-100 text-yellow-800; }
-        .status-progress { @apply bg-blue-100 text-blue-800; }
-        .status-selesai { @apply bg-green-100 text-green-800; }
-        .status-cancelled { @apply bg-red-100 text-red-800; }
-        
-        .status-lunas { @apply bg-green-100 text-green-800; }
-        .status-belum { @apply bg-red-100 text-red-800; }
-        .status-cicilan { @apply bg-yellow-100 text-yellow-800; }
+        .notification-success { background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border-color: #22c55e; }
+        .notification-error { background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%); border-color: #ef4444; }
+        .notification-info { background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border-color: #3b82f6; }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 min-h-screen flex flex-col">
 
-<!-- Pass PHP data to JavaScript -->
 <script>
     window.administrasiConfig = {
         baseUrl: '<?php echo base_url(); ?>',
@@ -129,323 +68,196 @@
     };
 </script>
 
-<!-- Notification Container -->
-<div id="notification-container" class="notification-container fixed top-4 right-4 z-50 space-y-3"></div>
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
 
-<!-- Header Section - MENGIKUTI TEMA BIRU DARI ADMIN -->
-<div class="p-6 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 border-b border-blue-500">
-    <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-            <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                <i data-lucide="clipboard-list" class="w-8 h-8 text-blue-600"></i>
-            </div>
-            <div>
-                <h1 class="text-2xl font-bold text-white">Dashboard Administrasi</h1>
-                <p class="text-blue-100">Manajemen Pasien & Keuangan</p>
-            </div>
-        </div>
-        <div class="flex items-center space-x-4">
-            <div class="bg-white rounded-lg px-4 py-2 border shadow-sm">
-                <p class="text-sm text-gray-500">Last Update</p>
-                <p class="text-lg font-semibold text-gray-900" id="last-update">Loading...</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Main Content - FULL WIDTH tanpa container -->
-<div class="p-6 space-y-6">
-
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-    
-    <?php
-    // Definisi KPI Cards untuk DRY code dan konsistensi
-    $kpiCards = [
-        [
-            'id' => 'kpi-card-1',
-            'title' => 'Total Pasien',
-            'value' => $registration_stats['total_pasien'] ?? null,
-            'subtitle' => '+' . ($registration_stats['registrasi_hari_ini'] ?? 0) . ' hari ini',
-            'color' => 'blue',
-            'icon' => 'users',
-            'value_color' => 'gray-900'
-        ],
-        [
-            'id' => 'kpi-card-2',
-            'title' => 'Total Permintaan',
-            'value' => $examination_stats['total'] ?? null,
-            'subtitle' => ($examination_stats['pending'] ?? 0) . ' pending',
-            'color' => 'orange',
-            'icon' => 'clipboard-list',
-            'value_color' => 'orange-600'
-        ],
-        [
-            'id' => 'kpi-card-3',
-            'title' => 'Pendapatan Bulan Ini',
-            'value' => $monthly_revenue['revenue'] ?? null,
-            'subtitle' => ($monthly_revenue['invoice_count'] ?? 0) . ' transaksi',
-            'color' => 'emerald',
-            'icon' => 'trending-up',
-            'value_color' => 'emerald-600',
-            'format' => 'currency'
-        ],
-        [
-            'id' => 'kpi-card-4',
-            'title' => 'Invoice Pending',
-            'value' => $financial_summary['unpaid_invoices'] ?? null,
-            'subtitle' => 'Rp ' . number_format($financial_summary['pending_revenue'] ?? 0, 0, ',', '.'),
-            'color' => 'red',
-            'icon' => 'alert-circle',
-            'value_color' => 'red-600'
-        ],
-        [
-            'id' => 'kpi-card-5',
-            'title' => 'Registrasi Hari Ini',
-            'value' => $registration_stats['registrasi_hari_ini'] ?? null,
-            'subtitle' => ($registration_stats['registrasi_minggu_ini'] ?? 0) . ' minggu ini',
-            'color' => 'purple',
-            'icon' => 'user-plus',
-            'value_color' => 'purple-600'
-        ]
-    ];
-    
-    foreach ($kpiCards as $card):
-    ?>
-    
-    <!-- <?= $card['title'] ?> -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 card-hover" id="<?= $card['id'] ?>">
+<!-- Header -->
+<div class="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 border-b border-blue-500">
+    <div class="w-full px-6 py-6">
         <div class="flex items-center justify-between">
-            <div class="flex-1 min-w-0">
-                <!-- Title -->
-                <p class="text-xs font-medium text-gray-600 mb-1.5">
-                    <?= $card['title'] ?>
-                </p>
-                
-                <!-- Value -->
-                <p class="text-2xl font-bold text-<?= $card['value_color'] ?> mb-1">
-                    <?php if ($card['value'] !== null): ?>
-                        <?php if (isset($card['format']) && $card['format'] === 'currency'): ?>
-                            Rp <?= number_format($card['value'], 0, ',', '.') ?>
-                        <?php else: ?>
-                            <?= number_format($card['value']) ?>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <span class="skeleton rounded w-14 h-7 inline-block"></span>
-                    <?php endif; ?>
-                </p>
-                
-                <!-- Subtitle -->
-                <p class="text-xs text-gray-500 truncate">
-                    <?= $card['subtitle'] ?>
-                </p>
-            </div>
-            
-            <!-- Icon -->
-            <div class="w-12 h-12 bg-<?= $card['color'] ?>-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-3">
-                <i data-lucide="<?= $card['icon'] ?>" class="w-6 h-6 text-<?= $card['color'] ?>-600"></i>
-            </div>
-        </div>
-    </div>
-    
-    <?php endforeach; ?>
-</div>
-
-<!-- Alternative: Dengan Trend Indicator & Interaktif -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6" style="display: none;">
-    
-    <?php foreach ($kpiCards as $card): ?>
-    
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 
-                hover:shadow-md hover:scale-[1.02] transform transition-all duration-200 
-                cursor-pointer group" 
-         id="<?= $card['id'] ?>-interactive"
-         data-card="<?= $card['id'] ?>"
-         onclick="handleKpiCardClick('<?= $card['id'] ?>')">
-        
-        <div class="flex items-center justify-between">
-            <div class="flex-1 min-w-0">
-                <!-- Title with hover effect -->
-                <p class="text-xs font-medium text-gray-600 group-hover:text-gray-800 transition-colors mb-1.5">
-                    <?= $card['title'] ?>
-                </p>
-                
-                <!-- Value with animation -->
-                <p class="text-2xl font-bold text-<?= $card['value_color'] ?> mb-1 group-hover:scale-105 transition-transform origin-left">
-                    <?php if ($card['value'] !== null): ?>
-                        <?php if (isset($card['format']) && $card['format'] === 'currency'): ?>
-                            Rp <?= number_format($card['value'], 0, ',', '.') ?>
-                        <?php else: ?>
-                            <?= number_format($card['value']) ?>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <span class="skeleton rounded w-14 h-7 inline-block"></span>
-                    <?php endif; ?>
-                </p>
-                
-                <!-- Subtitle -->
-                <p class="text-xs text-gray-500 truncate">
-                    <?= $card['subtitle'] ?>
-                </p>
-                
-                <!-- Trend Indicator (shown on hover) -->
-                <div class="flex items-center space-x-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <i data-lucide="arrow-up-right" class="w-3 h-3 text-green-600"></i>
-                    <span class="text-xs text-green-600 font-medium">Lihat detail</span>
+            <div class="flex items-center space-x-4">
+                <div class="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="clipboard-list" class="w-7 h-7 text-blue-600"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-white">Dashboard Administrasi</h1>
+                    <p class="text-blue-100 text-sm">Manajemen Pasien & Pemeriksaan</p>
                 </div>
             </div>
-            
-            <!-- Icon with hover effect -->
-            <div class="w-12 h-12 bg-<?= $card['color'] ?>-100 rounded-lg 
-                        flex items-center justify-center flex-shrink-0 ml-3
-                        group-hover:bg-<?= $card['color'] ?>-200 transition-colors">
-                <i data-lucide="<?= $card['icon'] ?>" class="w-6 h-6 text-<?= $card['color'] ?>-600"></i>
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
+                    <p class="text-xs text-blue-100">Terakhir Update</p>
+                    <p class="text-sm font-semibold text-white" id="last-update">Loading...</p>
+                </div>
+                <button onclick="refreshDashboard()" class="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white p-2.5 rounded-lg border border-white/20 transition-colors">
+                    <i data-lucide="refresh-cw" id="refreshIcon" class="w-5 h-5"></i>
+                </button>
             </div>
         </div>
-        
-        <!-- Progress bar (optional) -->
-        <?php if ($card['id'] === 'kpi-card-3'): // Contoh untuk pendapatan ?>
-        <div class="mt-3 pt-3 border-t border-gray-100">
-            <div class="flex items-center justify-between text-xs mb-1">
-                <span class="text-gray-500">Target: Rp 50jt</span>
-                <span class="text-gray-700 font-medium">75%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-1">
-                <div class="bg-<?= $card['color'] ?>-600 h-1 rounded-full transition-all duration-500" style="width: 75%"></div>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
-    
-    <?php endforeach; ?>
 </div>
 
+<!-- Main Content -->
+<div class="w-full px-6 py-6 space-y-6">
 
-    <!-- Charts Row - FULL WIDTH -->
-    <div class="grid grid-cols-1 lg:grid-cols-7 gap-6">
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <!-- Grafik Pendapatan - 4 kolom -->
-        <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-gray-200">
+        <!-- Total Pasien -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 card-hover">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+                </div>
+                <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    +<?php echo $registration_stats['registrasi_hari_ini'] ?? 0; ?>
+                </span>
+            </div>
+            <div>
+                <p class="text-xs text-gray-600 mb-1">Total Pasien</p>
+                <p class="text-2xl font-bold text-gray-900">
+                    <?php echo number_format($registration_stats['total_pasien'] ?? 0); ?>
+                </p>
+                <p class="text-xs text-gray-500 mt-1.5">
+                    <?php echo number_format($registration_stats['registrasi_minggu_ini'] ?? 0); ?> minggu ini
+                </p>
+            </div>
+        </div>
+
+        <!-- Total Permintaan -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 card-hover">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <i data-lucide="clipboard-list" class="w-5 h-5 text-orange-600"></i>
+                </div>
+                <span class="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                    <?php echo $examination_stats['pending'] ?? 0; ?> pending
+                </span>
+            </div>
+            <div>
+                <p class="text-xs text-gray-600 mb-1">Total Permintaan</p>
+                <p class="text-2xl font-bold text-gray-900">
+                    <?php echo number_format($examination_stats['total'] ?? 0); ?>
+                </p>
+                <p class="text-xs text-gray-500 mt-1.5">
+                    <?php echo $examination_stats['progress'] ?? 0; ?> diproses
+                </p>
+            </div>
+        </div>
+
+        <!-- Pemeriksaan Selesai Hari Ini -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 card-hover">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+                </div>
+                <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                    Hari ini
+                </span>
+            </div>
+            <div>
+                <p class="text-xs text-gray-600 mb-1">Selesai Hari Ini</p>
+                <p class="text-2xl font-bold text-gray-900">
+                    <?php echo number_format($today_completed_exams ?? 0); ?>
+                </p>
+                <p class="text-xs text-gray-500 mt-1.5">
+                    <?php echo $examination_stats['selesai'] ?? 0; ?> total
+                </p>
+            </div>
+        </div>
+
+        <!-- Registrasi Bulan Ini -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 card-hover">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-purple-600"></i>
+                </div>
+                <span class="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                    Bulan ini
+                </span>
+            </div>
+            <div>
+                <p class="text-xs text-gray-600 mb-1">Registrasi Bulan Ini</p>
+                <p class="text-2xl font-bold text-gray-900">
+                    <?php echo number_format($registration_stats['registrasi_bulan_ini'] ?? 0); ?>
+                </p>
+                <p class="text-xs text-gray-500 mt-1.5">
+                    Target: 100/bulan
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Tables Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Tren Pendaftaran (2 columns) -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
             <div class="p-6 border-b border-gray-100">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-600"></i>
-                        <span>Tren Pendapatan (7 Hari Terakhir)</span>
-                    </h3>
-                    <div class="flex space-x-2">
-                        <span class="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                            Total: Rp <span id="total-revenue-week"><?php echo number_format(($today_revenue ?? 0) + ($weekly_revenue ?? 0), 0, ',', '.'); ?></span>
-                        </span>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-blue-600"></i>
+                            <span>Tren Pendaftaran Pasien</span>
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1">14 hari terakhir</p>
                     </div>
                 </div>
             </div>
             <div class="p-6">
                 <div class="chart-container">
-                    <canvas id="revenueChart"></canvas>
+                    <canvas id="registrationTrendChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Stats Sidebar - 3 kolom -->
-        <div class="lg:col-span-3 space-y-6">
-            
-            <!-- Metode Pembayaran Stats (DIUBAH DARI "JENIS PEMBAYARAN") -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div class="p-6 border-b border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                        <i data-lucide="credit-card" class="w-5 h-5 text-blue-600"></i>
-                        <span>Metode Pembayaran</span>
-                    </h3>
-                </div>
-                <div class="p-6">
-                    <div class="space-y-4" id="payment-methods-stats">
-                        <?php if (isset($payment_method_stats) && !empty($payment_method_stats)): ?>
-                            <?php 
-                            $methodColors = [
-                                'tunai' => ['bg' => 'from-green-50 to-green-100', 'dot' => 'bg-green-500'],
-                                'transfer' => ['bg' => 'from-blue-50 to-blue-100', 'dot' => 'bg-blue-500'],
-                                'kartu_kredit' => ['bg' => 'from-purple-50 to-purple-100', 'dot' => 'bg-purple-500'],
-                                'kartu_debit' => ['bg' => 'from-indigo-50 to-indigo-100', 'dot' => 'bg-indigo-500'],
-                                'e-wallet' => ['bg' => 'from-orange-50 to-orange-100', 'dot' => 'bg-orange-500']
-                            ];
-                            
-                            $methodLabels = [
-                                'tunai' => 'Tunai',
-                                'transfer' => 'Transfer Bank',
-                                'kartu_kredit' => 'Kartu Kredit',
-                                'kartu_debit' => 'Kartu Debit',
-                                'e-wallet' => 'E-Wallet'
-                            ];
-                            ?>
-                            <?php foreach ($payment_method_stats as $method): ?>
-                                <?php 
-                                $methodKey = strtolower(str_replace([' ', '-'], '_', $method['metode_pembayaran']));
-                                $colors = $methodColors[$methodKey] ?? ['bg' => 'from-gray-50 to-gray-100', 'dot' => 'bg-gray-500'];
-                                $label = $methodLabels[$methodKey] ?? ucwords(str_replace('_', ' ', $method['metode_pembayaran']));
-                                ?>
-                                <div class="flex items-center justify-between p-3 bg-gradient-to-r <?php echo $colors['bg']; ?> rounded-lg">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-3 h-3 <?php echo $colors['dot']; ?> rounded-full"></div>
-                                        <span class="text-sm font-medium text-gray-900"><?php echo $label; ?></span>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="text-sm font-bold text-gray-900"><?php echo number_format($method['count']); ?></span>
-                                        <p class="text-xs text-gray-500">Rp <?php echo number_format($method['total_amount'], 0, ',', '.'); ?></p>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-3 h-3 bg-blue-500 rounded-full skeleton"></div>
-                                    <span class="skeleton rounded w-20 h-4"></span>
-                                </div>
-                                <div class="text-right">
-                                    <span class="skeleton rounded w-6 h-4"></span>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
+        <!-- Pemeriksaan Populer (1 column) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="p-6 border-b border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                    <i data-lucide="activity" class="w-5 h-5 text-orange-600"></i>
+                    <span>Pemeriksaan Populer</span>
+                </h3>
             </div>
-
-            <!-- Payment Rate -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div class="p-6 border-b border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                        <i data-lucide="percent" class="w-5 h-5 text-emerald-600"></i>
-                        <span>Payment Rate</span>
-                    </h3>
-                </div>
-                <div class="p-6">
-                    <?php 
-                    $payment_rate = 0;
-                    if (isset($financial_summary['total_invoices']) && $financial_summary['total_invoices'] > 0) {
-                        $payment_rate = ($financial_summary['paid_invoices'] / $financial_summary['total_invoices']) * 100;
-                    }
-                    ?>
-                    <div class="text-center">
-                        <div class="relative inline-flex items-center justify-center w-32 h-32">
-                            <svg class="transform -rotate-90 w-32 h-32">
-                                <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="none" />
-                                <circle cx="64" cy="64" r="56" stroke="#10b981" stroke-width="8" fill="none"
-                                    stroke-dasharray="<?php echo 2 * 3.14159 * 56; ?>"
-                                    stroke-dashoffset="<?php echo 2 * 3.14159 * 56 * (1 - $payment_rate / 100); ?>"
-                                    stroke-linecap="round" />
-                            </svg>
-                            <div class="absolute">
-                                <span class="text-3xl font-bold text-gray-900"><?php echo number_format($payment_rate, 1); ?>%</span>
+            <div class="p-6">
+                <div class="space-y-4 max-h-80 overflow-y-auto custom-scrollbar">
+                    <?php if (isset($popular_exams) && !empty($popular_exams)): ?>
+                        <?php 
+                        $max_count = max(array_column($popular_exams, 'request_count'));
+                        foreach ($popular_exams as $index => $exam): 
+                        $percentage = $max_count > 0 ? ($exam['request_count'] / $max_count) * 100 : 0;
+                        ?>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <span class="w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                        <?php echo $index + 1; ?>
+                                    </span>
+                                    <span class="text-sm font-medium text-gray-700">
+                                        <?php echo $exam['jenis_pemeriksaan']; ?>
+                                    </span>
+                                </div>
+                                <span class="text-sm font-semibold text-gray-900">
+                                    <?php echo $exam['request_count']; ?>
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-500" 
+                                     style="width: <?php echo $percentage; ?>%"></div>
                             </div>
                         </div>
-                        <p class="text-sm text-gray-600 mt-4">
-                            <?php echo $financial_summary['paid_invoices'] ?? 0; ?> dari <?php echo $financial_summary['total_invoices'] ?? 0; ?> invoice lunas
-                        </p>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-8 text-gray-400">
+                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2"></i>
+                            <p class="text-sm">Belum ada data</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Data Tables Row - FULL WIDTH -->
+    <!-- Data Tables -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Registrasi Terbaru -->
@@ -453,21 +265,23 @@
             <div class="p-6 border-b border-gray-100">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                        <i data-lucide="clipboard-check" class="w-5 h-5 text-blue-600"></i>
+                        <i data-lucide="user-check" class="w-5 h-5 text-blue-600"></i>
                         <span>Registrasi Terbaru</span>
                     </h3>
-                    <a href="<?php echo base_url('administrasi/patient_management'); ?>" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                        Lihat Semua →
+                    <a href="<?php echo base_url('administrasi/patient_management'); ?>" 
+                       class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-1">
+                        <span>Lihat Semua</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </a>
                 </div>
             </div>
             <div class="p-6">
-                <div class="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+                <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
                     <?php if (isset($recent_registrations) && !empty($recent_registrations)): ?>
                         <?php foreach ($recent_registrations as $patient): ?>
-                        <div class="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors duration-150 border border-gray-100">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <span class="text-sm font-bold text-white">
+                        <div class="flex items-center space-x-3 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span class="text-xs font-bold text-white">
                                     <?php 
                                     $names = explode(' ', $patient['nama']);
                                     echo strtoupper(substr($names[0], 0, 1) . (isset($names[1]) ? substr($names[1], 0, 1) : ''));
@@ -475,73 +289,69 @@
                                 </span>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="font-semibold text-gray-900 truncate"><?php echo $patient['nama']; ?></p>
-                                <p class="text-sm text-gray-500">NIK: <?php echo $patient['nik']; ?></p>
+                                <p class="font-semibold text-sm text-gray-900 truncate"><?php echo $patient['nama']; ?></p>
                                 <div class="flex items-center space-x-2 mt-1">
-                                    <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                                        <?php echo $patient['jenis_kelamin'] == 'L' ? 'Laki-laki' : 'Perempuan'; ?>
-                                    </span>
-                                    <span class="text-xs text-gray-500"><?php echo $patient['telepon']; ?></span>
+                                    <span class="text-xs text-gray-500"><?php echo $patient['nomor_registrasi']; ?></span>
+                                    <span class="text-xs text-gray-300">•</span>
+                                    <span class="text-xs text-gray-500"><?php echo $patient['jenis_kelamin'] == 'L' ? 'L' : 'P'; ?></span>
                                 </div>
                             </div>
                             <div class="text-right flex-shrink-0">
-                                <p class="text-xs text-gray-500"><?php echo date('d M Y', strtotime($patient['created_at'])); ?></p>
-                                <p class="text-xs font-medium text-blue-600"><?php echo $patient['nomor_registrasi']; ?></p>
+                                <p class="text-xs text-gray-500"><?php echo date('d/m/Y', strtotime($patient['created_at'])); ?></p>
+                                <p class="text-xs text-gray-400"><?php echo date('H:i', strtotime($patient['created_at'])); ?></p>
                             </div>
                         </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-8 text-gray-500">
-                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i>
-                            <p>Belum ada registrasi hari ini</p>
+                        <div class="text-center py-8 text-gray-400">
+                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2"></i>
+                            <p class="text-sm">Belum ada registrasi hari ini</p>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
 
-        <!-- Pembayaran Pending -->
+        <!-- Permintaan Pemeriksaan Pending -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200">
             <div class="p-6 border-b border-gray-100">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                        <i data-lucide="dollar-sign" class="w-5 h-5 text-red-600"></i>
-                        <span>Pembayaran Pending</span>
+                        <i data-lucide="clock" class="w-5 h-5 text-yellow-600"></i>
+                        <span>Permintaan Pending</span>
                     </h3>
-                    <span class="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                        <?php echo isset($pending_payments) ? count($pending_payments) : 0; ?> pending
-                    </span>
+                    <a href="<?php echo base_url('administrasi/examination_request'); ?>" 
+                       class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-1">
+                        <span>Lihat Semua</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
                 </div>
             </div>
             <div class="p-6">
-                <div class="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
-                    <?php if (isset($pending_payments) && !empty($pending_payments)): ?>
-                        <?php foreach ($pending_payments as $invoice): ?>
-                        <div class="p-4 border border-red-100 bg-red-50 rounded-lg hover:shadow-sm transition-shadow">
-                            <div class="flex items-start justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-2 mb-2">
-                                        <span class="font-semibold text-gray-900"><?php echo $invoice['nomor_invoice']; ?></span>
-                                        <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
-                                            <?php echo strtoupper($invoice['jenis_pembayaran']); ?>
-                                        </span>
-                                    </div>
-                                    <p class="text-sm text-gray-700"><?php echo $invoice['nama_pasien']; ?></p>
-                                    <p class="text-xs text-gray-500"><?php echo $invoice['jenis_pemeriksaan']; ?></p>
-                                </div>
-                                <div class="text-right flex-shrink-0 ml-4">
-                                    <p class="text-lg font-bold text-red-600">
-                                        Rp <?php echo number_format($invoice['total_biaya'], 0, ',', '.'); ?>
-                                    </p>
-                                    <p class="text-xs text-gray-500"><?php echo date('d M Y', strtotime($invoice['tanggal_invoice'])); ?></p>
-                                </div>
+                <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                    <?php if (isset($pending_examinations) && !empty($pending_examinations)): ?>
+                        <?php foreach ($pending_examinations as $exam): ?>
+                        <div class="flex items-center space-x-3 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
+                            <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="file-text" class="w-5 h-5 text-yellow-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-sm text-gray-900 truncate"><?php echo $exam['nama_pasien']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1"><?php echo $exam['jenis_pemeriksaan']; ?></p>
+                                <p class="text-xs text-gray-400 mt-0.5"><?php echo $exam['nomor_pemeriksaan']; ?></p>
+                            </div>
+                            <div class="flex flex-col items-end space-y-1 flex-shrink-0">
+                                <span class="status-badge status-<?php echo $exam['status_pemeriksaan']; ?>">
+                                    <?php echo ucfirst($exam['status_pemeriksaan']); ?>
+                                </span>
+                                <p class="text-xs text-gray-400"><?php echo date('d/m H:i', strtotime($exam['created_at'])); ?></p>
                             </div>
                         </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-8 text-gray-500">
-                            <i data-lucide="check-circle" class="w-12 h-12 mx-auto mb-2 text-green-400"></i>
-                            <p>Semua invoice sudah lunas!</p>
+                        <div class="text-center py-8 text-gray-400">
+                            <i data-lucide="check-circle" class="w-12 h-12 mx-auto mb-2"></i>
+                            <p class="text-sm">Tidak ada pemeriksaan pending</p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -549,134 +359,85 @@
         </div>
     </div>
 
-    <!-- Pembayaran Terbaru - FULL WIDTH TABLE -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div class="p-6 border-b border-gray-100">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                    <i data-lucide="check-circle-2" class="w-5 h-5 text-green-600"></i>
-                    <span>Pembayaran Terbaru</span>
-                </h3>
-                <a href="<?php echo base_url('administrasi/financial_reports'); ?>" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    Lihat Semua →
-                </a>
-            </div>
-        </div>
-        <div class="p-6">
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full">
-                    <thead>
-                        <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                            <th class="pb-3">Invoice</th>
-                            <th class="pb-3">Pasien</th>
-                            <th class="pb-3">Jenis</th>
-                            <th class="pb-3">Jumlah</th>
-                            <th class="pb-3">Metode</th>
-                            <th class="pb-3">Tanggal</th>
-                            <th class="pb-3">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <?php if (isset($recent_payments) && !empty($recent_payments)): ?>
-                            <?php foreach ($recent_payments as $payment): ?>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="py-4">
-                                    <span class="text-sm font-medium text-blue-600"><?php echo $payment['nomor_invoice']; ?></span>
-                                </td>
-                                <td class="py-4">
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900"><?php echo $payment['nama_pasien']; ?></p>
-                                        <p class="text-xs text-gray-500"><?php echo $payment['nik']; ?></p>
-                                    </div>
-                                </td>
-                                <td class="py-4">
-                                    <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
-                                        <?php echo strtoupper($payment['jenis_pembayaran']); ?>
-                                    </span>
-                                </td>
-                                <td class="py-4">
-                                    <span class="text-sm font-semibold text-gray-900">
-                                        Rp <?php echo number_format($payment['total_biaya'], 0, ',', '.'); ?>
-                                    </span>
-                                </td>
-                                <td class="py-4">
-                                    <span class="text-sm text-gray-600"><?php echo ucfirst($payment['metode_pembayaran'] ?? '-'); ?></span>
-                                </td>
-                                <td class="py-4">
-                                    <span class="text-sm text-gray-500"><?php echo date('d M Y', strtotime($payment['tanggal_pembayaran'])); ?></span>
-                                </td>
-                                <td class="py-4">
-                                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                        Lunas
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="7" class="py-8 text-center text-gray-500">
-                                    <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
-                                    <p>Belum ada pembayaran hari ini</p>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+            <i data-lucide="zap" class="w-5 h-5 text-blue-600"></i>
+            <span>Quick Actions</span>
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <a href="<?php echo base_url('administrasi/add_patient_data'); ?>" 
+               class="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group">
+                <i data-lucide="user-plus" class="w-8 h-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform"></i>
+                <span class="text-sm font-medium text-gray-700">Daftar Pasien Baru</span>
+            </a>
+            <a href="<?php echo base_url('administrasi/examination_request'); ?>" 
+               class="flex flex-col items-center justify-center p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors group">
+                <i data-lucide="clipboard-plus" class="w-8 h-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform"></i>
+                <span class="text-sm font-medium text-gray-700">Buat Permintaan</span>
+            </a>
+            <a href="<?php echo base_url('administrasi/patient_management'); ?>" 
+               class="flex flex-col items-center justify-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group">
+                <i data-lucide="search" class="w-8 h-8 text-green-600 mb-2 group-hover:scale-110 transition-transform"></i>
+                <span class="text-sm font-medium text-gray-700">Cari Pasien</span>
+            </a>
+            <a href="<?php echo base_url('administrasi/patient_history'); ?>" 
+               class="flex flex-col items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group">
+                <i data-lucide="file-text" class="w-8 h-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform"></i>
+                <span class="text-sm font-medium text-gray-700">Riwayat Pasien</span>
+            </a>
         </div>
     </div>
+
 </div>
 
 <script>
-// Initialize icons
 lucide.createIcons();
 
-// Initialize revenue chart
-let revenueChart = null;
+let regChart = null;
 
-function initializeRevenueChart() {
-    const ctx = document.getElementById('revenueChart').getContext('2d');
+function initializeRegistrationChart() {
+    const ctx = document.getElementById('registrationTrendChart').getContext('2d');
     
-    // Data dummy untuk 7 hari terakhir (akan di-replace dengan data real dari AJAX)
-    const today = new Date();
-    const labels = [];
-    const data = [];
-    
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        labels.push(date.toLocaleDateString('id-ID', { weekday: 'short' }));
-        data.push(0); // Will be updated via AJAX
-    }
-    
-    revenueChart = new Chart(ctx, {
-        type: 'bar',
+    const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+    regChart = new Chart(ctx, {
+        type: 'line',
         data: {
-            labels: labels,
+            labels: [],
             datasets: [{
-                label: 'Pendapatan',
-                data: data,
-                backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                borderColor: 'rgb(59, 130, 246)',
-                borderWidth: 1,
-                borderRadius: 6
+                label: 'Pasien Baru',
+                data: [],
+                borderColor: '#3b82f6',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#3b82f6',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                fill: true,
+                tension: 0.4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: 'white',
-                    bodyColor: 'white',
-                    cornerRadius: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1e293b',
+                    bodyColor: '#475569',
+                    borderColor: '#e2e8f0',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
                     callbacks: {
                         label: function(context) {
-                            return 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                            return 'Pasien: ' + context.parsed.y;
                         }
                     }
                 }
@@ -684,62 +445,49 @@ function initializeRevenueChart() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            if (value >= 1000000) {
-                                return 'Rp ' + (value / 1000000) + 'jt';
-                            }
-                            return 'Rp ' + (value / 1000) + 'k';
-                        }
+                    grid: { 
+                        color: '#f1f5f9',
+                        drawBorder: false 
+                    },
+                    ticks: { 
+                        precision: 0,
+                        color: '#64748b',
+                        font: { size: 11 }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { 
+                        color: '#64748b',
+                        font: { size: 11 }
                     }
                 }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
             }
         }
     });
     
-    // Load real data
-    loadRevenueData();
+    loadRegistrationData();
 }
 
-// Load revenue data via AJAX
-async function loadRevenueData() {
+async function loadRegistrationData() {
     try {
-        const response = await fetch(window.administrasiConfig.baseUrl + 'administrasi/ajax_get_revenue_chart_data');
-        if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.data) {
-                updateRevenueChart(result.data);
-            }
+        const response = await fetch(`${window.administrasiConfig.baseUrl}administrasi/ajax_get_registration_trend_data`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            regChart.data.labels = result.data.map(item => item.date);
+            regChart.data.datasets[0].data = result.data.map(item => item.count);
+            regChart.update('none');
         }
     } catch (error) {
-        console.error('Error loading revenue data:', error);
+        console.error('Error loading registration data:', error);
     }
 }
 
-// Update revenue chart with real data
-function updateRevenueChart(data) {
-    if (!revenueChart || !data) return;
-    
-    const labels = data.map(day => {
-        const date = new Date(day.date);
-        return date.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
-    });
-    
-    const amounts = data.map(day => parseFloat(day.total) || 0);
-    
-    revenueChart.data.labels = labels;
-    revenueChart.data.datasets[0].data = amounts;
-    revenueChart.update('active');
-    
-    // Update total
-    const total = amounts.reduce((sum, val) => sum + val, 0);
-    const totalElement = document.getElementById('total-revenue-week');
-    if (totalElement) {
-        totalElement.textContent = total.toLocaleString('id-ID');
-    }
-}
-
-// Update last update time
 function updateLastUpdateTime() {
     const now = new Date();
     document.getElementById('last-update').textContent = now.toLocaleTimeString('id-ID', {
@@ -748,12 +496,11 @@ function updateLastUpdateTime() {
     });
 }
 
-// Refresh dashboard
 function refreshDashboard() {
     const refreshIcon = document.getElementById('refreshIcon');
     refreshIcon.classList.add('loading');
     
-    loadRevenueData();
+    loadRegistrationData();
     
     setTimeout(() => {
         updateLastUpdateTime();
@@ -762,20 +509,18 @@ function refreshDashboard() {
     }, 1000);
 }
 
-// Notification system (sama dengan admin dashboard)
 function showNotification(type, message, duration = 5000) {
     let container = document.getElementById('notification-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'notification-container';
-        container.className = 'notification-container fixed top-4 right-4 z-50 space-y-3';
+        container.className = 'fixed top-4 right-4 z-50 space-y-3';
         document.body.appendChild(container);
     }
     
     const config = {
         success: { icon: 'check-circle', iconColor: 'text-green-600', className: 'notification-success border-l-4' },
         error: { icon: 'alert-circle', iconColor: 'text-red-600', className: 'notification-error border-l-4' },
-        warning: { icon: 'alert-triangle', iconColor: 'text-yellow-600', className: 'notification-warning border-l-4' },
         info: { icon: 'info', iconColor: 'text-blue-600', className: 'notification-info border-l-4' }
     };
     
@@ -784,7 +529,8 @@ function showNotification(type, message, duration = 5000) {
     
     const notification = document.createElement('div');
     notification.id = notificationId;
-    notification.className = `notification ${currentConfig.className} rounded-lg p-4 relative overflow-hidden`;
+    notification.className = `notification ${currentConfig.className} rounded-lg p-4 relative`;
+    notification.style.transition = 'all 0.3s ease';
     notification.innerHTML = `
         <div class="flex items-start space-x-3">
             <i data-lucide="${currentConfig.icon}" class="w-5 h-5 ${currentConfig.iconColor}"></i>
@@ -810,15 +556,14 @@ function removeNotification(id) {
     }
 }
 
-// Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
-    initializeRevenueChart();
+    initializeRegistrationChart();
     updateLastUpdateTime();
     
-    // Auto refresh every 5 minutes
-    setInterval(updateLastUpdateTime, 60000);
+    setInterval(() => {
+        updateLastUpdateTime();
+    }, 60000);
     
-    // Welcome notification
     setTimeout(() => {
         showNotification('info', 'Selamat datang di Dashboard Administrasi!', 3000);
     }, 500);

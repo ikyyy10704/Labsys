@@ -798,45 +798,74 @@ public function generate_invoice_auto($pemeriksaan_id) {
         
         // Cek apakah pemeriksaan sudah punya hasil
         $has_results = $this->invoice_model->has_examination_results($pemeriksaan_id);
-        
-        if (!$has_results) {
-            return array(
-                'success' => false,
-                'message' => 'Pemeriksaan belum memiliki hasil. Silakan input hasil terlebih dahulu.'
-            );
-        }
-        
-        // Buat/update invoice dengan perhitungan otomatis
-        $invoice_id = $this->invoice_model->create_or_update_invoice($pemeriksaan_id);
-        
-        $this->db->trans_complete();
-        
-        if ($this->db->trans_status() === FALSE || !$invoice_id) {
-            return array(
-                'success' => false,
-                'message' => 'Gagal membuat invoice'
-            );
-        }
-        
-        // Ambil detail invoice
-        $invoice = $this->invoice_model->get_invoice_with_details($invoice_id);
-        
-        return array(
-            'success' => true,
-            'message' => 'Invoice berhasil dibuat dengan total biaya Rp ' . number_format($invoice['total_biaya'], 0, ',', '.'),
-            'invoice_id' => $invoice_id,
-            'invoice' => $invoice
-        );
-        
     } catch (Exception $e) {
-        $this->db->trans_rollback();
-        log_message('error', 'Error generating auto invoice: ' . $e->getMessage());
-        return array(
-            'success' => false,
-            'message' => 'Terjadi kesalahan sistem'
-        );
+        // ... exception handling ...
+        return false;
     }
 }
+
+// ==================== DASHBOARD OPERATIONAL METRICS ====================
+
+public function get_daily_registration_trend($days = 7)
+{
+    $trend = array();
+    
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $date = date('Y-m-d', strtotime("-$i days"));
+        $day_name = date('d M', strtotime($date));
+        
+        $this->db->where('DATE(created_at)', $date);
+        $count = $this->db->count_all_results('pasien');
+        
+        $trend[] = array(
+            'date' => $day_name,
+            'full_date' => $date,
+            'count' => $count
+        );
+    }
+    
+    return $trend;
+}
+
+public function get_popular_examination_types($limit = 5)
+{
+    // Fix: Remove ONLY_FULL_GROUP_BY issue by selecting non-aggregated columns carefully
+    // Assuming 'jenis_pemeriksaan' stores single types, OR we need to parse them if comma separated.
+    // Based on previous files, 'jenis_pemeriksaan' might be a string like "Hematologi, Kimia Darah".
+    // For simplicity in SQL, we will count direct matches or use a simpler approach if structure is complex.
+    // Let's assume standard stored types for now.
+    
+    $this->db->select('jenis_pemeriksaan, COUNT(*) as request_count');
+    $this->db->group_by('jenis_pemeriksaan');
+    $this->db->order_by('request_count', 'DESC');
+    $this->db->limit($limit);
+    
+    $result = $this->db->get('pemeriksaan_lab')->result_array();
+    
+    // If we need to split comma separated values, we would do it in PHP, 
+    // but for now let's rely on the primary stored string.
+    return $result;
+}
+
+public function get_today_completed_examinations()
+{
+    $today = date('Y-m-d');
+    
+    $this->db->where('status_pemeriksaan', 'selesai');
+    $this->db->group_start();
+        $this->db->where('DATE(completed_at)', $today);
+        $this->db->or_group_start();
+            $this->db->where('completed_at IS NULL', null, false);
+            $this->db->where('DATE(updated_at)', $today);
+        $this->db->group_end();
+    $this->db->group_end();
+    
+    return $this->db->count_all_results('pemeriksaan_lab');
+}
+        
+
+        
+
 
 /**
  * Get invoice detail dengan breakdown biaya

@@ -505,9 +505,42 @@
     </div>
 </div>
 
+</script>
+
+<!-- Detail Modal -->
+<div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
+                    <span>Detail Permintaan Pemeriksaan</span>
+                </h3>
+                <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6" id="detail-content">
+            <div class="flex justify-center py-8">
+                <i data-lucide="loader-2" class="w-8 h-8 text-blue-600 loading"></i>
+            </div>
+        </div>
+        
+        <div class="p-6 border-t border-gray-100 bg-gray-50 flex justify-end">
+            <button onclick="closeDetailModal()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 const BASE_URL = '<?= base_url() ?>';
 let pemeriksaanCounter = 1;
+let isEditMode = false;
+let currentExamId = null;
 
 // Sub Pemeriksaan Map
 const subPemeriksaanMap = {
@@ -560,6 +593,266 @@ document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();
 });
 
+// View Detail Function
+function viewRequestDetail(examId) {
+    const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('detail-content');
+    
+    modal.classList.remove('hidden');
+    content.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-8">
+            <i data-lucide="loader-2" class="w-8 h-8 text-blue-600 loading mb-2"></i>
+            <span class="text-gray-500">Memuat data...</span>
+        </div>
+    `;
+    lucide.createIcons();
+    
+    fetch(BASE_URL + 'administrasi/get_examination_data/' + examId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const exam = data.examination;
+                
+                // Build content
+                let html = `
+                    <div class="space-y-6">
+                        <!-- Header Info -->
+                        <div class="bg-blue-50 p-4 rounded-lg flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-blue-600 font-medium mb-1">Nomor Pemeriksaan</p>
+                                <p class="text-xl font-bold text-blue-900 font-mono">${exam.nomor_pemeriksaan}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    ${exam.status_pemeriksaan === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                      (exam.status_pemeriksaan === 'progress' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800')}">
+                                    ${exam.status_pemeriksaan.toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Pasien Info -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-xs text-gray-500">Nama Pasien</p>
+                                <p class="font-medium text-gray-900">${exam.nama_pasien}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">NIK</p>
+                                <p class="font-medium text-gray-900">${exam.nik}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Tanggal Pemeriksaan</p>
+                                <p class="font-medium text-gray-900">${new Date(exam.tanggal_pemeriksaan).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Status Pasien</p>
+                                <p class="font-medium text-gray-900">
+                                    ${exam.status_pasien === 'puasa' ? 'Puasa' : 
+                                      (exam.status_pasien === 'minum_obat' ? 'Minum Obat' : 'Belum Puasa')}
+                                </p>
+                                ${exam.keterangan_obat ? `<p class="text-xs text-red-600 mt-1">Obat: ${exam.keterangan_obat}</p>` : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- Detail Pemeriksaan -->
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2 border-b pb-1">Detail Pemeriksaan</h4>
+                            <div class="space-y-3">
+                `;
+                
+                if (exam.detail && exam.detail.length > 0) {
+                    exam.detail.forEach(det => {
+                        html += `
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="font-medium text-blue-700">${det.jenis_pemeriksaan}</p>
+                        `;
+                        
+                        if (det.sub_pemeriksaan) {
+                            try {
+                                const subs = JSON.parse(det.sub_pemeriksaan);
+                                if (subs.length > 0) {
+                                    html += `<ul class="mt-1 ml-4 list-disc text-sm text-gray-600">`;
+                                    
+                                    // Helper function to get label
+                                    const getLabel = (jenis, id) => {
+                                        const found = (subPemeriksaanMap[jenis] || []).find(x => x.id === id);
+                                        return found ? found.label : id;
+                                    };
+                                    
+                                    subs.forEach(s => {
+                                        html += `<li>${getLabel(det.jenis_pemeriksaan, s)}</li>`;
+                                    });
+                                    html += `</ul>`;
+                                }
+                            } catch(e) {}
+                        }
+                        html += `</div>`;
+                    });
+                }
+                
+                html += `
+                            </div>
+                        </div>
+                        
+                        <!-- Sampel Info -->
+                         <div>
+                            <h4 class="font-medium text-gray-900 mb-2 border-b pb-1">Sampel</h4>
+                            <div class="flex flex-wrap gap-2">
+                `;
+                
+                if (exam.sampel && exam.sampel.length > 0) {
+                    exam.sampel.forEach(samp => {
+                        html += `
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-50 text-purple-700 border border-purple-200">
+                                ${samp.jenis_sampel === 'lain' ? (samp.keterangan_sampel || 'Lainnya') : samp.jenis_sampel.replace('_', ' ').toUpperCase()}
+                            </span>
+                        `;
+                    });
+                }
+                
+                html += `
+                            </div>
+                        </div>
+                        
+                        <!-- Keterangan -->
+                        ${exam.keterangan ? `
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-1">Keterangan Tambahan</h4>
+                            <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                ${exam.keterangan}
+                            </p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = `
+                    <div class="text-center text-red-500 py-8">
+                        <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-2"></i>
+                        <p>${data.message || 'Gagal memuat data'}</p>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            content.innerHTML = `
+                <div class="text-center text-red-500 py-8">
+                    <p>Terjadi kesalahan jaringan</p>
+                </div>
+            `;
+        });
+}
+
+function closeDetailModal() {
+    document.getElementById('detail-modal').classList.add('hidden');
+}
+
+// Edit Examination Function
+function editExamination(examId) {
+    // Show loading or similar if needed, but we can just open modal and load data
+    const modal = document.getElementById('create-modal');
+    const form = document.getElementById('create-form');
+    
+    // Reset form first
+    form.reset();
+    document.getElementById('pemeriksaan-container').innerHTML = ''; // Clear rows
+    pemeriksaanCounter = 0; // Will increment
+    
+    // Set Edit Mode
+    isEditMode = true;
+    currentExamId = examId;
+    modal.classList.remove('hidden');
+    document.querySelector('#create-modal h3 span').textContent = 'Edit Permintaan Pemeriksaan';
+    
+    // Show loader in form? Or just fill it.
+    // Fetch Data
+    fetch(BASE_URL + 'administrasi/get_examination_data/' + examId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const exam = data.examination;
+                
+                // Populate Basic Fields
+                // Handle Select2/Choosen if exists? No, standard select here.
+                // We need to match the patient option text or value
+                const patientSelect = document.getElementById('pasien_id');
+                patientSelect.value = exam.pasien_id;
+                
+                document.getElementById('tanggal_pemeriksaan').value = exam.tanggal_pemeriksaan;
+                document.getElementById('status_pasien').value = exam.status_pasien;
+                toggleObatField();
+                
+                if (exam.status_pasien === 'minum_obat') {
+                    document.getElementById('keterangan_obat').value = exam.keterangan_obat;
+                }
+                
+                document.getElementById('keterangan').value = exam.keterangan;
+                
+                // Populate Samples
+                if (exam.sampel) {
+                    exam.sampel.forEach(s => {
+                        const cb = document.querySelector(`input[name="sampel[]"][value="${s.jenis_sampel}"]`);
+                        if (cb) {
+                            cb.checked = true;
+                            if (s.jenis_sampel === 'lain') {
+                                toggleSampelLain();
+                                document.querySelector('input[name="keterangan_sampel_lain"]').value = s.keterangan_sampel;
+                            }
+                        }
+                    });
+                }
+                
+                // Populate Examination Details (Rows)
+                if (exam.detail && exam.detail.length > 0) {
+                    exam.detail.forEach((det, index) => {
+                        addPemeriksaan(); // Adds a row, increments counter
+                        // Current counter is pemeriksaanCounter
+                        const rowNum = pemeriksaanCounter;
+                        
+                        // Set Type
+                        const select = document.querySelector(`.pemeriksaan-row[data-row="${rowNum}"] .jenis-pemeriksaan-select`);
+                        if (select) {
+                            select.value = det.jenis_pemeriksaan;
+                            // Trigger change to load sub options
+                            loadSubPemeriksaan(select, rowNum);
+                            
+                            // Check Sub-exams
+                            if (det.sub_pemeriksaan) {
+                                try {
+                                    const subs = JSON.parse(det.sub_pemeriksaan);
+                                    if (Array.isArray(subs)) {
+                                        subs.forEach(subId => {
+                                            // Need to wait for loadSubPemeriksaan? starts synchronous so ok.
+                                            const subCb = document.querySelector(`input[name="sub_pemeriksaan_${rowNum}[]"][value="${subId}"]`);
+                                            if (subCb) subCb.checked = true;
+                                        });
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+                    });
+                } else {
+                    // Always at least one row if empty (shouldnt happen)
+                    addPemeriksaan();
+                }
+                
+            } else {
+                alert('Gagal memuat data: ' + data.message);
+                closeCreateModal();
+            }
+        })
+        .catch(e => {
+            console.error(e);
+            alert('Gagal memuat data pemeriksaan');
+            closeCreateModal();
+        });
+}
+
 // Toggle field obat
 function toggleObatField() {
     const status = document.getElementById('status_pasien').value;
@@ -587,6 +880,81 @@ function toggleSampelLain() {
         container.classList.add('hidden');
     }
 }
+
+// Patient Search Filter
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('patient-search');
+    const patientSelect = document.getElementById('pasien_id');
+    
+    if (searchInput && patientSelect) {
+        // Function to update option display
+        function updateOptionLabels() {
+            const selectedValue = patientSelect.value;
+            const options = patientSelect.options;
+            
+            for (let i = 1; i < options.length; i++) {
+                const option = options[i];
+                const originalText = option.getAttribute('data-original-text');
+                
+                // Store original text first time
+                if (!originalText) {
+                    option.setAttribute('data-original-text', option.textContent);
+                }
+                
+                // Reset to original
+                const baseText = option.getAttribute('data-original-text');
+                
+                // Add indicator if selected
+                if (option.value === selectedValue && selectedValue !== '') {
+                    option.textContent = '✓ ' + baseText + ' [TERPILIH]';
+                    option.style.backgroundColor = '#dbeafe'; // Light blue
+                    option.style.fontWeight = 'bold';
+                } else {
+                    option.textContent = baseText;
+                    option.style.backgroundColor = '';
+                    option.style.fontWeight = '';
+                }
+            }
+        }
+        
+        // Update on change
+        patientSelect.addEventListener('change', updateOptionLabels);
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const options = patientSelect.options;
+            
+            for (let i = 1; i < options.length; i++) { // Skip first "-- Pilih Pasien --"
+                const option = options[i];
+                const name = option.getAttribute('data-name') || '';
+                const nik = option.getAttribute('data-nik') || '';
+                const originalText = option.getAttribute('data-original-text') || option.textContent;
+                const text = originalText.toLowerCase();
+                
+                const matches = name.includes(searchTerm) || 
+                               nik.includes(searchTerm) || 
+                               text.includes(searchTerm);
+                
+                option.style.display = matches ? '' : 'none';
+            }
+            
+            // Auto select if only one match
+            const visibleOptions = Array.from(options).filter(opt => 
+                opt.value !== '' && opt.style.display !== 'none'
+            );
+            
+            if (visibleOptions.length === 1) {
+                patientSelect.value = visibleOptions[0].value;
+                updateOptionLabels();
+            }
+        });
+        
+        // Initial update
+        updateOptionLabels();
+    }
+});
+
 
 // Load sub pemeriksaan
 function loadSubPemeriksaan(select, rowNum) {
@@ -687,8 +1055,11 @@ document.getElementById('create-form').addEventListener('submit', async function
         lucide.createIcons();
         
         const formData = new FormData(this);
-        
-        const response = await fetch(BASE_URL + 'administrasi/examination_request', {
+        const url = isEditMode 
+            ? BASE_URL + 'administrasi/edit_examination/' + currentExamId
+            : BASE_URL + 'administrasi/examination_request';
+            
+        const response = await fetch(url, {
             method: 'POST',
             body: formData
         });
@@ -700,7 +1071,7 @@ document.getElementById('create-form').addEventListener('submit', async function
             closeCreateModal();
             setTimeout(() => location.reload(), 1500);
         } else {
-            showFlashMessage('error', result.message || 'Gagal membuat permintaan pemeriksaan');
+            showFlashMessage('error', result.message || 'Gagal menyimpan data');
         }
     } catch(error) {
         console.error('Error:', error);
@@ -713,16 +1084,23 @@ document.getElementById('create-form').addEventListener('submit', async function
 });
 
 function openCreateModal() {
+    isEditMode = false;
+    currentExamId = null;
     document.getElementById('create-modal').classList.remove('hidden');
     document.getElementById('create-form').reset();
+    document.querySelector('#create-modal h3 span').textContent = 'Buat Permintaan Pemeriksaan Baru';
     
-    // Reset pemeriksaan rows
+    // Reset pemeriksaan rows completely
     const container = document.getElementById('pemeriksaan-container');
-    const rows = container.querySelectorAll('.pemeriksaan-row');
-    rows.forEach((row, index) => {
-        if (index > 0) row.remove();
-    });
-    pemeriksaanCounter = 1;
+    container.innerHTML = '';
+    pemeriksaanCounter = 0;
+    
+    // Add first default row
+    addPemeriksaan();
+    
+    // Reset hidden fields
+    toggleObatField();
+    toggleSampelLain();
     
     lucide.createIcons();
 }

@@ -287,7 +287,6 @@ public function get_examination_results($examination_id, $examination_type) {
             return null;
         }
         
-        $results = null;
         $table_map = array(
             'kimia darah' => 'kimia_darah',
             'hematologi' => 'hematologi',
@@ -298,23 +297,36 @@ public function get_examination_results($examination_id, $examination_type) {
             'ims' => 'ims',
             'mls' => 'mls'
         );
-        
-        $exam_type_lower = strtolower($examination_type);
-        
-        if (!isset($table_map[$exam_type_lower])) {
-            log_message('warning', "Unknown examination type: {$examination_type}");
-            return null;
+
+        // Split types by comma if multiple
+        $types = array_map('trim', explode(',', strtolower($examination_type)));
+        $combined_results = array();
+        $found_any = false;
+
+        foreach ($types as $type) {
+            if (!isset($table_map[$type])) {
+                log_message('error', "Unknown examination type: {$type}"); // Changed from warning to error
+                continue;
+            }
+
+            $table = $table_map[$type];
+            $this->db->where('pemeriksaan_id', $examination_id);
+            $query = $this->db->get($table);
+
+            if ($query->num_rows() > 0) {
+                $row = $query->row_array();
+                // Merge results. Note: overlapping keys (like id, created_at) will be overwritten, 
+                // but parameter keys should be unique across tables.
+                if (empty($combined_results)) {
+                    $combined_results = $row;
+                } else {
+                    $combined_results = array_merge($combined_results, $row);
+                }
+                $found_any = true;
+            }
         }
         
-        $table = $table_map[$exam_type_lower];
-        $this->db->where('pemeriksaan_id', $examination_id);
-        $query = $this->db->get($table);
-        
-        if ($query->num_rows() > 0) {
-            $results = $query->row_array();
-        }
-        
-        return $results;
+        return $found_any ? $combined_results : null;
         
     } catch (Exception $e) {
         log_message('error', 'Error getting examination results: ' . $e->getMessage());

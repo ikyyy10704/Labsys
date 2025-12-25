@@ -992,25 +992,32 @@ function renderInventoryTable(inventory) {
     }, 10);
 }
 function rebuildInventoryView() {
-    if (confirm('Rebuild inventory view? Ini akan memakan waktu beberapa detik.')) {
-        fetch('<?= base_url("inventory/rebuild_inventory_view") ?>', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('success', data.message);
-                loadInventoryData(); // Reload data
-            } else {
-                showToast('error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Rebuild error:', error);
-            showToast('error', 'Gagal rebuild inventory view');
-        });
-    }
+    openModal(
+        'Rebuild Inventory View',
+        'Proses ini akan membangun ulang view database untuk inventory dan mungkin memakan waktu beberapa detik. Apakah Anda yakin ingin melanjutkan?',
+        'Ya, Rebuild',
+        () => {
+            fetch('<?= base_url("inventory/rebuild_inventory_view") ?>', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', data.message);
+                    loadInventoryData(); // Reload data
+                } else {
+                    showToast('error', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Rebuild error:', error);
+                showToast('error', 'Gagal rebuild inventory view');
+            });
+        },
+        'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-transparent'
+    );
 }
+
 function debugFilter() {
     fetch('<?= base_url("inventory/debug_filter") ?>')
         .then(response => response.json())
@@ -1504,38 +1511,33 @@ function closeDetailModal() {
 }
 
 // Delete item
-async function deleteItem(itemId, type, name) {
-    const result = await Swal.fire({
-        title: 'Konfirmasi Hapus',
-        text: `Apakah Anda yakin ingin menghapus item "${name}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal'
-    });
-    
-    if (result.isConfirmed) {
-        try {
-            const response = await fetch(`<?= base_url("inventory/ajax_delete_item/") ?>${itemId}/${type}`, {
-                method: 'POST'
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast('success', data.message);
-                loadInventoryData();
-                loadStatistics();
-            } else {
-                showToast('error', data.message);
+function deleteItem(itemId, type, name) {
+    openModal(
+        'Konfirmasi Hapus',
+        `Apakah Anda yakin ingin menghapus item "${name}"?`,
+        'Ya, Hapus!',
+        async () => {
+            try {
+                const response = await fetch(`<?= base_url("inventory/ajax_delete_item/") ?>${itemId}/${type}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('success', data.message);
+                    loadInventoryData();
+                    loadStatistics();
+                } else {
+                    showToast('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting item:', error);
+                showToast('error', 'Gagal menghapus item');
             }
-        } catch (error) {
-            console.error('Error deleting item:', error);
-            showToast('error', 'Gagal menghapus item');
-        }
-    }
+        },
+        'bg-red-100 text-red-700 hover:bg-red-200 border border-transparent'
+    );
 }
 
 // Export functions
@@ -1669,7 +1671,94 @@ if (typeof MutationObserver !== 'undefined') {
         attributeFilter: ['style', 'class']
     });
 }
+// Custom Modal Functions
+function openModal(title, message, confirmText, confirmCallback, confirmBtnClass) {
+    document.getElementById('custom-modal-title').textContent = title;
+    document.getElementById('custom-modal-message').textContent = message;
+    
+    const confirmBtn = document.getElementById('custom-modal-confirm-btn');
+    confirmBtn.querySelector('span').textContent = confirmText;
+    
+    // Reset classes and add new ones
+    confirmBtn.className = `px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${confirmBtnClass || 'bg-blue-600 hover:bg-blue-700 text-white'}`;
+    
+    // Store callback
+    window.currentModalCallback = confirmCallback;
+    
+    const modal = document.getElementById('custom-modal');
+    modal.classList.remove('hidden');
+    
+    // Add animation
+    const modalContent = modal.querySelector('div.bg-white');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    ensureFullwidthLayout();
+}
+
+function closeModal() {
+    const modal = document.getElementById('custom-modal');
+    const modalContent = modal.querySelector('div.bg-white');
+    
+    modalContent.classList.remove('scale-100', 'opacity-100');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        window.currentModalCallback = null;
+        ensureFullwidthLayout();
+    }, 200);
+}
+
+async function confirmAction() {
+    if (window.currentModalCallback) {
+        const btn = document.getElementById('custom-modal-confirm-btn');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>Processing...';
+        btn.disabled = true;
+        
+        try {
+            await window.currentModalCallback();
+            closeModal();
+        } catch (error) {
+            console.error('Error in modal action:', error);
+        } finally {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }
+    }
+}
 </script>
 
-</body>
-</html>
+<!-- Custom Modal -->
+<div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm transition-all duration-300">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl transform transition-all duration-300 scale-95 opacity-0">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="p-3 bg-red-50 rounded-full">
+                    <i data-lucide="alert-circle" class="w-6 h-6 text-red-500"></i>
+                </div>
+                <h3 id="custom-modal-title" class="text-lg font-bold text-gray-900">Konfirmasi</h3>
+            </div>
+            
+            <p id="custom-modal-message" class="text-gray-600 mb-8 leading-relaxed">
+                Apakah Anda yakin ingin melakukan tindakan ini?
+            </p>
+            
+            <div class="flex items-center justify-end space-x-3">
+                <button onclick="closeModal()" 
+                        class="px-4 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 font-medium">
+                    Batal
+                </button>
+                <button id="custom-modal-confirm-btn" onclick="confirmAction()"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center space-x-2 shadow-lg shadow-red-200 transition-all duration-200">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Ya, Lanjutkan</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

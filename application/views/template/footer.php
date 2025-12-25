@@ -1,5 +1,5 @@
 <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 p-6 mt-8">
+    <footer class="bg-white border-t border-gray-200 p-6 mt-auto">
         <div class="flex flex-col md:flex-row justify-between items-center">
             <div class="text-sm text-gray-600 mb-2 md:mb-0">
                 © 2025 LabSy - Sistem Informasi Laboratorium. All rights reserved.

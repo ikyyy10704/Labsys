@@ -13,7 +13,8 @@ class Laboratorium extends CI_Controller {
             redirect('auth/login');
         }
         
-        $this->load->model(['User_model', 'Laboratorium_model']);
+        $this->load->model(['User_model', 'Laboratorium_model', 'Sample_inventory_model']);
+        
         $this->load->library(['form_validation']);
         $this->load->helper(['form', 'url', 'date']);
     }
@@ -481,73 +482,6 @@ public function incoming_requests()
     $this->load->view('template/footer');
 }
 
-/**
- * Sample Data / Specimen Tracking - Enhanced View
- */
-public function sample_data()
-{
-    $data['title'] = 'Data Sampel / Pelacakan Spesimen';
-    
-    // Pagination setup
-    $limit = 10;
-    $page = $this->input->get('page') ?: 1;
-    $offset = ($page - 1) * $limit;
-    
-    // Get filters from URL
-    $filters = array(
-        'status' => $this->input->get('status') ?: 'progress',
-        'date_from' => $this->input->get('date_from'),
-        'date_to' => $this->input->get('date_to'),
-        'jenis_pemeriksaan' => $this->input->get('jenis_pemeriksaan'),
-        'petugas_id' => $this->input->get('petugas_id'),
-        'search' => $this->input->get('search')
-    );
-    
-    try {
-        // Get paginated data
-        $data['samples'] = $this->Laboratorium_model->get_samples_data_enhanced($filters, $limit, $offset);
-        $data['total_samples'] = $this->Laboratorium_model->count_samples_data($filters);
-        
-        // Add latest timeline status to each sample
-        foreach ($data['samples'] as &$sample) {
-            $sample['latest_status'] = $this->Laboratorium_model->get_latest_timeline_status($sample['pemeriksaan_id']);
-        }
-        
-        // Pagination info
-        $data['current_page'] = $page;
-        $data['total_pages'] = ceil($data['total_samples'] / $limit);
-        $data['has_prev'] = $page > 1;
-        $data['has_next'] = $page < $data['total_pages'];
-        
-        // Get options for filters
-        $data['examination_types'] = $this->Laboratorium_model->get_examination_type_options();
-        $data['petugas_list'] = $this->Laboratorium_model->get_all_petugas_lab();
-        $data['status_options'] = array(
-            'progress' => 'Sedang Diproses',
-            'selesai' => 'Selesai',
-            'cancelled' => 'Dibatalkan'
-        );
-        
-    } catch (Exception $e) {
-        log_message('error', 'Error getting sample data: ' . $e->getMessage());
-        $data['samples'] = array();
-        $data['total_samples'] = 0;
-        $data['current_page'] = 1;
-        $data['total_pages'] = 0;
-        $data['has_prev'] = false;
-        $data['has_next'] = false;
-        $data['examination_types'] = array();
-        $data['petugas_list'] = array();
-        $data['status_options'] = array();
-    }
-    
-    $data['filters'] = $filters;
-    
-    $this->load->view('template/header', $data);
-    $this->load->view('template/sidebar', $data);
-    $this->load->view('laboratorium/sample_data', $data);
-    $this->load->view('template/footer');
-}
 
 public function accept_multiple_requests()
 {
@@ -1106,10 +1040,29 @@ public function get_examination_data($examination_id = null)
         // Get existing results if any
         $existing_results = $this->Laboratorium_model->get_existing_results($examination_id, $examination['jenis_pemeriksaan']);
         
+        // Check if this is a multiple examination
+        $this->db->where('pemeriksaan_id', $examination_id);
+        $examination_details = $this->db->get('pemeriksaan_detail')->result_array();
+        $is_multiple = count($examination_details) > 1;
+        
+        // Ensure sub_pemeriksaan is available - ambil dari detail jika kosong di main
+        if (empty($examination['sub_pemeriksaan']) && count($examination_details) == 1) {
+            // Untuk single examination, ambil sub_pemeriksaan dari detail
+            if (!empty($examination_details[0]['sub_pemeriksaan'])) {
+                $examination['sub_pemeriksaan'] = $examination_details[0]['sub_pemeriksaan'];
+            }
+        }
+        
+        if (empty($examination['sub_pemeriksaan'])) {
+            $examination['sub_pemeriksaan'] = null;
+        }
+        
         echo json_encode([
             'success' => true,
             'examination' => $examination,
-            'existing_results' => $existing_results
+            'existing_results' => $existing_results,
+            'is_multiple' => $is_multiple,
+            'examination_details' => $examination_details
         ]);
         
     } catch (Exception $e) {
@@ -1183,34 +1136,6 @@ public function get_qc_dashboard_data()
         exit;
     }
 }
-/**
- * Get result details for quality control (AJAX) - Enhanced
- */
-public function get_result_details($examination_id)
-{
-    try {
-        $examination = $this->Laboratorium_model->get_examination_by_id($examination_id);
-        
-        if (!$examination) {
-            echo json_encode(['success' => false, 'message' => 'Pemeriksaan tidak ditemukan']);
-            return;
-        }
-        
-        // Get results based on examination type
-        $results = $this->Laboratorium_model->get_formatted_results_by_examination($examination_id);
-        
-        echo json_encode([
-            'success' => true,
-            'examination' => $examination,
-            'results' => $results
-        ]);
-        
-    } catch (Exception $e) {
-        log_message('error', 'Error getting result details: ' . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Gagal memuat detail hasil']);
-    }
-}
-
 public function get_invoice_details($examination_id)
 {
     try {
@@ -1722,249 +1647,6 @@ public function get_calibration_schedule()
     }
 }
 
-public function save_examination_results()
-{
-    // PENTING: Set header JSON di awal untuk mencegah HTML error
-    header('Content-Type: application/json');
-    
-    // Log semua POST data untuk debugging
-    log_message('debug', 'Save results POST data: ' . print_r($_POST, true));
-    
-    if ($this->input->method() !== 'post') {
-        echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-        exit;
-    }
-    
-    $examination_id = $this->input->post('examination_id');
-    $result_type = $this->input->post('result_type');
-    
-    if (!$examination_id || !$result_type) {
-        echo json_encode(['success' => false, 'message' => 'Data tidak lengkap: examination_id atau result_type kosong']);
-        exit;
-    }
-    
-    try {
-        // Verifikasi examination exists
-        $examination = $this->Laboratorium_model->get_examination_by_id($examination_id);
-        if (!$examination) {
-            echo json_encode(['success' => false, 'message' => 'Pemeriksaan tidak ditemukan']);
-            exit;
-        }
-        
-        // Check user access
-        $petugas_id = $this->Laboratorium_model->get_petugas_id_by_user_id($this->session->userdata('user_id'));
-        if (!$petugas_id) {
-            echo json_encode(['success' => false, 'message' => 'User tidak terdaftar sebagai petugas lab']);
-            exit;
-        }
-        
-        // Hanya check petugas_id jika sudah ada assignment
-        if ($examination['petugas_id'] && $examination['petugas_id'] != $petugas_id) {
-            echo json_encode(['success' => false, 'message' => 'Akses ditolak - Anda bukan petugas yang ditugaskan']);
-            exit;
-        }
-        
-        // Prepare base data
-        $data = array(
-            'pemeriksaan_id' => $examination_id,
-            'created_at' => wib_now()
-        );
-        
-        $success = false;
-        $error_detail = '';
-        
-        // Process based on result type
-        switch (strtolower($result_type)) {
-                case 'kimia_darah':
-                $data = array_merge($data, $this->_get_kimia_darah_data());
-                $success = $this->Laboratorium_model->save_or_update_kimia_darah_results($examination_id, $data);
-                break;
-                
-            case 'hematologi':
-                $data = array_merge($data, $this->_get_hematologi_data()); // Tambah parameter
-                $success = $this->Laboratorium_model->save_or_update_hematologi_results($examination_id, $data);
-                break;
-                
-            case 'urinologi':
-                $data = array_merge($data, $this->_get_urinologi_data()); // Tambah parameter
-                $success = $this->Laboratorium_model->save_or_update_urinologi_results($examination_id, $data);
-        break;
-                
-            case 'serologi':
-                $data = array_merge($data, $this->_get_serologi_data());
-                $success = $this->Laboratorium_model->save_or_update_serologi_results($examination_id, $data);
-                break;
-                
-            case 'tbc':
-                $data = array_merge($data, $this->_get_tbc_data());
-                $success = $this->Laboratorium_model->save_or_update_tbc_results($examination_id, $data);
-                break;
-                
-            case 'ims':
-                $data = array_merge($data, $this->_get_ims_data());
-                $success = $this->Laboratorium_model->save_or_update_ims_results($examination_id, $data);
-                break;
-                
-            case 'mls':
-                $data = array_merge($data, $this->_get_mls_data());
-                $success = $this->Laboratorium_model->save_or_update_mls_results($examination_id, $data);
-                break;
-                
-            default:
-                echo json_encode(['success' => false, 'message' => 'Jenis pemeriksaan tidak valid: ' . $result_type]);
-                exit;
-        }
-        
-        // Check database error
-        if ($this->db->error()['code'] != 0) {
-            $db_error = $this->db->error();
-            log_message('error', 'Database error saving results: ' . print_r($db_error, true));
-            $error_detail = $db_error['message'];
-        }
-        
-        if ($success) {
-            // Add timeline entry
-            try {
-                $this->Laboratorium_model->add_sample_timeline(
-                    $examination_id,
-                    'Hasil Diinput',
-                    'Hasil pemeriksaan ' . $result_type . ' telah diinput dan siap untuk divalidasi',
-                    $petugas_id
-                );
-            } catch (Exception $timeline_error) {
-                log_message('error', 'Error adding timeline: ' . $timeline_error->getMessage());
-                // Timeline error tidak akan menggagalkan penyimpanan hasil
-            }
-            
-            $this->User_model->log_activity(
-                $this->session->userdata('user_id'), 
-                "Lab results saved: {$result_type}", 
-                'pemeriksaan_lab', 
-                $examination_id
-            );
-            
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Hasil berhasil disimpan',
-                'examination_id' => $examination_id
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Gagal menyimpan hasil ke database' . ($error_detail ? ': ' . $error_detail : '')
-            ]);
-        }
-        
-    } catch (Exception $e) {
-        log_message('error', 'Exception in save_examination_results: ' . $e->getMessage());
-        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-        
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
-            'error_type' => get_class($e)
-        ]);
-    }
-    
-    exit; 
-}
-private function _get_kimia_darah_data($examination_id = null)
-{
-    return array(
-        'gula_darah_sewaktu' => $this->input->post('gula_darah_sewaktu') ?: null,
-        'gula_darah_puasa' => $this->input->post('gula_darah_puasa') ?: null,
-        'gula_darah_2jam_pp' => $this->input->post('gula_darah_2jam_pp') ?: null,
-        'cholesterol_total' => $this->input->post('cholesterol_total') ?: null,
-        'cholesterol_hdl' => $this->input->post('cholesterol_hdl') ?: null,
-        'cholesterol_ldl' => $this->input->post('cholesterol_ldl') ?: null,
-        'trigliserida' => $this->input->post('trigliserida') ?: null,
-        'asam_urat' => $this->input->post('asam_urat') ?: null,
-        'ureum' => $this->input->post('ureum') ?: null,
-        'creatinin' => $this->input->post('creatinin') ?: null,
-        'sgpt' => $this->input->post('sgpt') ?: null,
-        'sgot' => $this->input->post('sgot') ?: null
-    );
-}
-
-private function _get_hematologi_data($examination_id = null)
-{
-    return array(
-        'hemoglobin' => $this->input->post('hemoglobin') ?: null,
-        'hematokrit' => $this->input->post('hematokrit') ?: null,
-        'laju_endap_darah' => $this->input->post('laju_endap_darah') ?: null,
-        'clotting_time' => $this->input->post('clotting_time') ?: null,
-        'bleeding_time' => $this->input->post('bleeding_time') ?: null,
-        'golongan_darah' => $this->input->post('golongan_darah') ?: null,
-        'rhesus' => $this->input->post('rhesus') ?: null,
-        'malaria' => $this->input->post('malaria') ?: null,
-        'leukosit' => $this->input->post('leukosit') ?: null,
-        'trombosit' => $this->input->post('trombosit') ?: null,
-        'eritrosit' => $this->input->post('eritrosit') ?: null,
-        'mcv' => $this->input->post('mcv') ?: null,
-        'mch' => $this->input->post('mch') ?: null,
-        'mchc' => $this->input->post('mchc') ?: null,
-        'eosinofil' => $this->input->post('eosinofil') ?: null,
-        'basofil' => $this->input->post('basofil') ?: null,
-        'neutrofil' => $this->input->post('neutrofil') ?: null,
-        'limfosit' => $this->input->post('limfosit') ?: null,
-        'monosit' => $this->input->post('monosit') ?: null
-    );
-}
-
-private function _get_urinologi_data($examination_id = null)
-{
-    return array(
-        'makroskopis' => $this->input->post('makroskopis') ?: null,
-        'mikroskopis' => $this->input->post('mikroskopis') ?: null,
-        'kimia_ph' => $this->input->post('kimia_ph') ?: null,
-        'protein_regular' => $this->input->post('protein_regular') ?: null, 
-        'protein' => $this->input->post('protein') ?: null,
-        'tes_kehamilan' => $this->input->post('tes_kehamilan') ?: null,
-        'berat_jenis' => $this->input->post('berat_jenis') ?: null,
-        'glukosa' => $this->input->post('glukosa') ?: null,
-        'keton' => $this->input->post('keton') ?: null,
-        'bilirubin' => $this->input->post('bilirubin') ?: null,
-        'urobilinogen' => $this->input->post('urobilinogen') ?: null
-    );
-}
-
-private function _get_serologi_data($examination_id = null)
-{
-    return array(
-        'rdt_antigen' => $this->input->post('rdt_antigen') ?: null,
-        'widal' => $this->input->post('widal') ?: null,
-        'hbsag' => $this->input->post('hbsag') ?: null,
-        'ns1' => $this->input->post('ns1') ?: null,
-        'hiv' => $this->input->post('hiv') ?: null
-    );
-}
-
-private function _get_tbc_data($examination_id = null)
-{
-    return array(
-        'dahak' => $this->input->post('dahak') ?: null,
-        'tcm' => $this->input->post('tcm') ?: null
-    );
-}
-
-private function _get_ims_data($examination_id = null)
-{
-    return array(
-        'sifilis' => $this->input->post('sifilis') ?: null,
-        'duh_tubuh' => $this->input->post('duh_tubuh') ?: null
-    );
-}
-
-private function _get_mls_data($examination_id = null)
-{
-    return array(
-        'jenis_tes' => $this->input->post('jenis_tes') ?: null,
-        'hasil' => $this->input->post('hasil') ?: null,
-        'nilai_rujukan' => $this->input->post('nilai_rujukan') ?: null,
-        'satuan' => $this->input->post('satuan') ?: null,
-        'metode' => $this->input->post('metode') ?: null
-    );
-}
 public function batch_validate_results()
 {
     if ($this->input->method() !== 'post') {
@@ -2097,165 +1779,63 @@ public function validate_result($examination_id)
     
     exit; 
 }
-
-public function get_examination_data_multiple($examination_id)
+public function get_result_details($examination_id = null)
 {
-    if ($this->input->method() !== 'post') {
-        echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-        return;
+    // Get from URL or POST
+    if ($examination_id === null) {
+        $examination_id = $this->input->get('id') ?: $this->input->post('id');
+    }
+    
+    @ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+    
+    if (!$examination_id) {
+        echo json_encode(['success' => false, 'message' => 'ID required']);
+        exit;
     }
     
     try {
-        // Get examination dengan details
         $examination = $this->Laboratorium_model->get_examination_by_id($examination_id);
         
         if (!$examination) {
-            echo json_encode(['success' => false, 'message' => 'Pemeriksaan tidak ditemukan']);
-            return;
+            echo json_encode(['success' => false, 'message' => 'Not found']);
+            exit;
         }
         
-        // Get existing results untuk semua jenis pemeriksaan
-        $existing_results = $this->Laboratorium_model->get_existing_results_multiple(
-            $examination_id, 
-            $examination['examination_details']
-        );
+        $jenis = $examination['jenis_pemeriksaan'];
+        $results = $this->Laboratorium_model->get_existing_results($examination_id, $jenis);
+        
+        if ($results) {
+            $formatted = $this->_format_results_for_display($results, $jenis);
+        } else {
+            $formatted = array();
+        }
         
         echo json_encode([
             'success' => true,
             'examination' => $examination,
-            'examination_details' => $examination['examination_details'],
-            'existing_results' => $existing_results
+            'results' => $formatted,
+            'is_multiple' => false
         ]);
         
     } catch (Exception $e) {
-        log_message('error', 'Error getting examination data: ' . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat memuat data']);
-    }
-}
-
-/**
- * Save examination results untuk multiple types
- */
-public function save_examination_results_multiple()
-{
-    if ($this->input->method() !== 'post') {
-        echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-        return;
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
     
-    try {
-        $examination_id = $this->input->post('examination_id');
-        $result_types = $this->input->post('result_types'); // Array of result types
-        
-        if (!$examination_id || empty($result_types)) {
-            echo json_encode(['success' => false, 'message' => 'Data tidak lengkap']);
-            return;
-        }
-        
-        // Validasi examination exists
-        $examination = $this->Laboratorium_model->get_examination_by_id($examination_id);
-        if (!$examination) {
-            echo json_encode(['success' => false, 'message' => 'Pemeriksaan tidak ditemukan']);
-            return;
-        }
-        
-        $this->db->trans_start();
-        
-        $saved_count = 0;
-        $errors = array();
-        
-        // Loop through each result type dan save
-        foreach ($result_types as $result_type) {
-            $result_data = array('pemeriksaan_id' => $examination_id);
-            
-            // Get field prefix untuk type ini
-            $prefix = $result_type . '_';
-            
-            // Collect data untuk type ini
-            foreach ($this->input->post() as $key => $value) {
-                if (strpos($key, $prefix) === 0 && !empty($value)) {
-                    // Remove prefix
-                    $field_name = str_replace($prefix, '', $key);
-                    $result_data[$field_name] = $value;
-                }
-            }
-            
-            // Save berdasarkan type
-            $save_result = false;
-            switch ($result_type) {
-                case 'kimia_darah':
-                    $save_result = $this->Laboratorium_model->save_or_update_kimia_darah_results($examination_id, $result_data);
-                    break;
-                case 'hematologi':
-                    $save_result = $this->Laboratorium_model->save_or_update_hematologi_results($examination_id, $result_data);
-                    break;
-                case 'urinologi':
-                    $save_result = $this->Laboratorium_model->save_or_update_urinologi_results($examination_id, $result_data);
-                    break;
-                case 'serologi':
-                    $save_result = $this->Laboratorium_model->save_or_update_serologi_results($examination_id, $result_data);
-                    break;
-                case 'tbc':
-                    $save_result = $this->Laboratorium_model->save_or_update_tbc_results($examination_id, $result_data);
-                    break;
-                case 'ims':
-                    $save_result = $this->Laboratorium_model->save_or_update_ims_results($examination_id, $result_data);
-                    break;
-            }
-            
-            if ($save_result) {
-                $saved_count++;
-            } else {
-                $errors[] = "Gagal menyimpan hasil untuk {$result_type}";
-            }
-        }
-        
-        $this->db->trans_complete();
-        
-        if ($this->db->trans_status() === FALSE) {
-            echo json_encode(['success' => false, 'message' => 'Transaksi database gagal']);
-            return;
-        }
-        
-        // Add timeline entry
-        $petugas_id = $this->Laboratorium_model->get_petugas_id_by_user_id($this->session->userdata('user_id'));
-        if ($petugas_id) {
-            $this->Laboratorium_model->add_sample_timeline(
-                $examination_id,
-                'Hasil Diinput',
-                "Hasil pemeriksaan telah diinput ({$saved_count} jenis pemeriksaan)",
-                $petugas_id
-            );
-        }
-        
-        // Log activity
-        $this->User_model->log_activity(
-            $this->session->userdata('user_id'),
-            "Multiple examination results saved ({$saved_count} types)",
-            'pemeriksaan_lab',
-            $examination_id
-        );
-        
-        if (!empty($errors)) {
-            echo json_encode([
-                'success' => true,
-                'message' => "Berhasil menyimpan {$saved_count} hasil, dengan beberapa error",
-                'saved_count' => $saved_count,
-                'errors' => $errors
-            ]);
-        } else {
-            echo json_encode([
-                'success' => true,
-                'message' => "Semua hasil berhasil disimpan ({$saved_count} jenis pemeriksaan)",
-                'saved_count' => $saved_count
-            ]);
-        }
-        
-    } catch (Exception $e) {
-        $this->db->trans_rollback();
-        log_message('error', 'Error saving multiple results: ' . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan saat menyimpan hasil']);
-    }
+    exit;
 }
 
+private function _format_results_for_display($results, $jenis)
+{
+    $formatted = array();
+    
+    foreach ($results as $key => $value) {
+        if ($value !== null && $value !== '') {
+            $label = ucwords(str_replace('_', ' ', $key));
+            $formatted[$label] = $value;
+        }
+    }
+    
+    return $formatted;
+}
 }

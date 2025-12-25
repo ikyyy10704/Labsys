@@ -94,6 +94,21 @@
 </head>
 <body class="bg-gray-50 fullwidth-container">
 
+<!-- Backup Loading Overlay -->
+<div id="backup-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
+    <div class="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full mx-4 text-center">
+        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i data-lucide="database" class="w-10 h-10 text-blue-600 loading"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Membuat Backup Database</h3>
+        <p id="backup-status-text" class="text-gray-600 mb-4">Harap tunggu, proses backup sedang berjalan...</p>
+        <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div id="backup-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-gray-500">Jangan tutup atau refresh halaman ini</p>
+    </div>
+</div>
+
 <!-- Header Section - konsisten dengan activity_reports -->
 <div class="p-6 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 border-b border-blue-500 force-fullwidth">
     <div class="flex items-center justify-between">
@@ -367,9 +382,53 @@
     </div>
 </div>
 
+    <!-- Custom Confirmation Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] hidden">
+        <div class="bg-white rounded-xl p-6 w-96 fade-in transform scale-100 transition-all">
+            <h2 class="text-lg font-semibold" id="modal-title">Konfirmasi</h2>
+            <p class="text-sm text-gray-600 mt-2" id="modal-message">
+                Apakah Anda yakin?
+            </p>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeModal()" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition-colors">Batal</button>
+                <button id="modal-confirm-btn" onclick="confirmAction()" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm">
+                    Konfirmasi
+                </button>
+            </div>
+        </div>
+    </div>
+
 <script>
 // Global variables
 let selectedBackupFile = null;
+let currentConfirmCallback = null;
+
+// Modal Logic
+function openModal(title, message, confirmText, confirmCallback, confirmColorClass = 'bg-red-600 text-white') {
+    document.getElementById('modal-title').textContent = title || 'Konfirmasi';
+    document.getElementById('modal-message').textContent = message || 'Apakah Anda yakin?';
+    
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    confirmBtn.textContent = confirmText || 'Konfirmasi';
+    
+    // Reset and add color class.
+    confirmBtn.className = `px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-sm ${confirmColorClass}`;
+    
+    currentConfirmCallback = confirmCallback;
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    currentConfirmCallback = null;
+}
+
+function confirmAction() {
+    if (currentConfirmCallback) {
+        currentConfirmCallback();
+    }
+    closeModal();
+}
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
@@ -525,6 +584,73 @@ function showEmptyBackupList() {
     ensureFullwidthLayout();
 }
 
+// Backup overlay functions
+function showBackupOverlay() {
+    const overlay = document.getElementById('backup-overlay');
+    overlay.classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function hideBackupOverlay() {
+    document.getElementById('backup-overlay').classList.add('hidden');
+}
+
+function updateBackupStatus(text, progress) {
+    document.getElementById('backup-status-text').textContent = text;
+    document.getElementById('backup-progress-bar').style.width = progress + '%';
+}
+
+// Poll for new backup file
+async function pollForNewBackup(initialCount) {
+    const maxAttempts = 30; // Check for 30 seconds
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+        
+        try {
+            const response = await fetch('<?= base_url("admin/ajax_get_backup_list") ?>');
+            const data = await response.json();
+            
+            if (data.success && data.backups.length > initialCount) {
+                // New backup found!
+                updateBackupStatus('Backup berhasil dibuat!', 100);
+                showFlashMessage('success', 'Backup database berhasil dibuat!');
+                
+                setTimeout(() => {
+                    hideBackupOverlay();
+                    loadBackupList();
+                    loadDatabaseInfo();
+                }, 1000);
+                return true;
+            }
+            
+            updateBackupStatus(`Menunggu proses selesai... (${attempts}s)`, 70 + (attempts / maxAttempts * 30));
+        } catch (e) {
+            console.log('Polling attempt failed:', e);
+        }
+    }
+    
+    // Timeout - still refresh the list
+    hideBackupOverlay();
+    showFlashMessage('info', 'Proses backup mungkin masih berjalan. Refresh halaman untuk cek hasil.');
+    loadBackupList();
+    loadDatabaseInfo();
+    return false;
+}
+
+// Get current backup count
+async function getBackupCount() {
+    try {
+        const response = await fetch('<?= base_url("admin/ajax_get_backup_list") ?>');
+        const data = await response.json();
+        return data.success ? data.backups.length : 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
 // Create backup
 async function createBackup() {
     const name = document.getElementById('backup-name').value || `backup_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}`;
@@ -537,11 +663,32 @@ async function createBackup() {
         return;
     }
     
+    // Get initial backup count for comparison
+    const initialBackupCount = await getBackupCount();
+    
+    // Show overlay
+    showBackupOverlay();
+    updateBackupStatus('Memulai proses backup...', 10);
+    
     // Show progress
     const progressContainer = document.getElementById('backup-progress');
     progressContainer.classList.remove('hidden');
     
+    // Disable backup button
+    const backupBtn = document.querySelector('button[onclick="createBackup()"]');
+    if (backupBtn) {
+        backupBtn.disabled = true;
+        backupBtn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 loading"></i><span>Membuat Backup...</span>';
+        lucide.createIcons();
+    }
+    
+    updateBackupStatus('Mengekspor database...', 30);
+
     try {
+        // Create AbortController with 5 minute timeout for large databases
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
+        
         const response = await fetch('<?= base_url("admin/ajax_create_backup") ?>', {
             method: 'POST',
             headers: {
@@ -552,26 +699,54 @@ async function createBackup() {
                 include_structure: includeStructure,
                 include_data: includeData,
                 compress: compress
-            })
+            }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            throw new Error('Server mengembalikan response tidak valid. Kemungkinan backup tetap berhasil, cek tabel di bawah.');
+        }
         
         const data = await response.json();
         
         if (data.success) {
-            showFlashMessage('success', 'Backup berhasil dibuat');
-            loadBackupList();
-            loadDatabaseInfo();
+            updateBackupStatus('Backup berhasil dibuat!', 100);
+            showFlashMessage('success', `Backup berhasil dibuat: ${data.filename || name}`);
+            
+            setTimeout(() => {
+                hideBackupOverlay();
+                loadBackupList();
+                loadDatabaseInfo();
+            }, 1000);
             
             // Reset form
             document.getElementById('backup-name').value = '';
         } else {
+            hideBackupOverlay();
             showFlashMessage('error', data.message || 'Gagal membuat backup');
         }
     } catch (error) {
         console.error('Error creating backup:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat membuat backup');
+        
+        // Start polling to check if backup completed
+        updateBackupStatus('Memeriksa hasil backup...', 70);
+        await pollForNewBackup(initialBackupCount);
     } finally {
         progressContainer.classList.add('hidden');
+        hideBackupOverlay();
+        
+        // Re-enable backup button
+        if (backupBtn) {
+            backupBtn.disabled = false;
+            backupBtn.innerHTML = '<i data-lucide="download" class="w-5 h-5"></i><span>Buat Backup Sekarang</span>';
+            lucide.createIcons();
+        }
     }
 }
 
@@ -645,80 +820,98 @@ function downloadBackup(filename) {
 
 // Restore from backup
 function restoreFromBackup(filename) {
-    if (confirm('Apakah Anda yakin ingin memulihkan database dari backup ini?')) {
-        fetch('<?= base_url("admin/ajax_restore_from_backup") ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({filename: filename})
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showFlashMessage('success', 'Database berhasil dipulihkan');
-                loadDatabaseInfo();
-            } else {
-                showFlashMessage('error', data.message || 'Gagal memulihkan database');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showFlashMessage('error', 'Terjadi kesalahan saat memulihkan database');
-        });
-    }
+    openModal(
+        'Restore Database',
+        'Apakah Anda yakin ingin memulihkan database dari backup ini? Tindakan ini akan menimpa data saat ini.',
+        'Pulihkan',
+        () => {
+            fetch('<?= base_url("admin/ajax_restore_from_backup") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({filename: filename})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFlashMessage('success', 'Database berhasil dipulihkan');
+                    loadDatabaseInfo();
+                } else {
+                    showFlashMessage('error', data.message || 'Gagal memulihkan database');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showFlashMessage('error', 'Terjadi kesalahan saat memulihkan database');
+            });
+        },
+        'bg-green-100 text-green-700 hover:bg-green-200 border border-transparent'
+    );
 }
 
 // Delete backup
-async function deleteBackup(filename) {
-    if (!confirm('Apakah Anda yakin ingin menghapus backup ini?')) return;
-    
-    try {
-        const response = await fetch('<?= base_url("admin/ajax_delete_backup") ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({filename: filename})
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', 'Backup berhasil dihapus');
-            loadBackupList();
-            loadDatabaseInfo();
-        } else {
-            showFlashMessage('error', data.message || 'Gagal menghapus backup');
-        }
-    } catch (error) {
-        console.error('Error deleting backup:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat menghapus backup');
-    }
+function deleteBackup(filename) {
+    openModal(
+        'Hapus Backup',
+        'Apakah Anda yakin ingin menghapus backup ini? Tindakan ini tidak dapat dibatalkan.',
+        'Hapus',
+        async () => {
+            try {
+                const response = await fetch('<?= base_url("admin/ajax_delete_backup") ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({filename: filename})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', 'Backup berhasil dihapus');
+                    loadBackupList();
+                    loadDatabaseInfo();
+                } else {
+                    showFlashMessage('error', data.message || 'Gagal menghapus backup');
+                }
+            } catch (error) {
+                console.error('Error deleting backup:', error);
+                showFlashMessage('error', 'Terjadi kesalahan saat menghapus backup');
+            }
+        },
+        'bg-red-100 text-red-700 hover:bg-red-200 border border-transparent'
+    );
 }
 
 // Clean old backups
-async function cleanOldBackups() {
-    if (!confirm('Apakah Anda yakin ingin menghapus backup yang lebih lama dari 30 hari?')) return;
-    
-    try {
-        const response = await fetch('<?= base_url("admin/ajax_clean_old_backups") ?>', {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showFlashMessage('success', `${data.deleted_count} backup lama berhasil dihapus`);
-            loadBackupList();
-            loadDatabaseInfo();
-        } else {
-            showFlashMessage('error', data.message || 'Gagal membersihkan backup lama');
-        }
-    } catch (error) {
-        console.error('Error cleaning old backups:', error);
-        showFlashMessage('error', 'Terjadi kesalahan saat membersihkan backup lama');
-    }
+function cleanOldBackups() {
+    openModal(
+        'Bersihkan Backup Lama',
+        'Apakah Anda yakin ingin menghapus backup yang lebih lama dari 30 hari?',
+        'Bersihkan',
+        async () => {
+            try {
+                const response = await fetch('<?= base_url("admin/ajax_clean_old_backups") ?>', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage('success', `${data.deleted_count} backup lama berhasil dihapus`);
+                    loadBackupList();
+                    loadDatabaseInfo();
+                } else {
+                    showFlashMessage('error', data.message || 'Gagal membersihkan backup lama');
+                }
+            } catch (error) {
+                console.error('Error cleaning old backups:', error);
+                showFlashMessage('error', 'Terjadi kesalahan saat membersihkan backup lama');
+            }
+        },
+        'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-transparent'
+    );
 }
 
 // Refresh backup list
